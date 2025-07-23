@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ReuniteAI — Report Missing Items</title>
+  <title>ReuniteAI — Report Found Items</title>
   <link rel="stylesheet" href="./styles/style.css" />
   <link rel="stylesheet" href="./styles/report.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,21 +39,22 @@
 
   <main>
     <section class="report-section">
-      <h1 class="report-title">Report a Lost Item</h1>
+      <h1 class="report-title">Found someone's item?</h1>
       <p class="report-subtitle">
-        Let us help you recover your lost item with our AI-powered matching.
+        Help reunite them with it by reporting what you found.
       </p>
 
       <form id="" class="report-form">
         <div class="form-group">
-          <label for="item-image">Upload a Photo of the Lost item</label>
-          <input type="file" id="item-image" accept="image/*" required aria-label="Upload photo of the lost item" />
+          <label for="item-image">Upload a Photo of the Found item</label>
+          <input type="file" id="item-image" accept="image/*" required aria-label="Upload photo of the found item" />
+          <div id="image-preview" class="image-preview"></div>
         </div>
 
         <div class="form-group">
-          <label for="item-description">Describe your item</label>
+          <label for="item-description">Describe the item</label>
           <textarea id="item-description" placeholder="e.g., Red backpack, library, zipper broken" required
-            aria-label="Description of the lost item"></textarea>
+            aria-label="Description of found item"></textarea>
         </div>
 
         <div class="form-group">
@@ -65,7 +66,7 @@
 
         <div class="form-group">
           <label for="item-location">
-            Where did you lose it?
+            Where did you found it?
             <div class="info-container">
               <i class="fa-solid fa-circle-info"></i>
               <span class="info-text">
@@ -82,18 +83,18 @@
         </div>
 
         <div class="form-group">
-          <label for="item-date">When did you lose it?</label>
-          <input type="date" id="item-date" required aria-label="Date the item was lost" />
+          <label for="item-date">When did you find it?</label>
+          <input type="date" id="item-date" required aria-label="Date the item was found" />
         </div>
 
         <button type="submit" class="submit-button">
-          Submit Lost Item Report
+          Submit Found Item Report
         </button>
       </form>
 
       <div id="successMessage" class="success-message" style="display: none">
         <p>
-          Thanks! We’ve received your report. Our AI is now searching for a match. We’ll notify you if anything comes up.
+          Thanks! We’ve received your report. Our AI is now searching for apossible match with any missing item. We’ll notify you if there's a Match.
         </p>
         <a href="./index.html" class="back-button">Back to Home</a>
       </div>
@@ -101,5 +102,28 @@
   </main>
 </body>
 <script src="./scripts/map.js"></script>
+<script>
+  const imageInput = document.getElementById("item-image");
+  const previewImage = document.getElementById("image-preview");
 
+  imageInput.addEventListener("change", () => {
+    previewImage.innerHTML = "";
+
+    const file = imageInput.files[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const img = document.createElement("img");
+        img.src = e.target.result;
+        img.alt = "uploaded image preview";
+        img.style.maxWidth = "100%";
+        img.style.marginTop = "10px";
+        previewImage.appendChild(img);
+      };
+
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
 </html>
