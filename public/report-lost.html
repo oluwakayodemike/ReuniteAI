@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReuniteAI — Report Missing Items</title>
+  <link rel="stylesheet" href="./styles/style.css" />
+  <link rel="stylesheet" href="./styles/lost.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://kit.fontawesome.com/cdfe75faaa.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="nav-section nav-left">
+        <div class="logo">
+          <a href="./index.html">ReuniteAI</a>
+        </div>
+      </div>
+      <div class="nav-section nav-center">
+        <a href="#">How It Works</a>
+        <a href="#">About</a>
+        <a href="#">Check Report Status</a>
+      </div>
+      <div class="nav-section nav-right">
+        <a href="#" class="nav-auth">Log in</a>
+        <a href="#" class="nav-auth outlined">Sign up</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="report-section">
+      <h1 class="report-title">Report a Lost Item</h1>
+      <p class="report-subtitle">
+        Let us help you recover your lost item with our AI-powered matching.
+      </p>
+
+      <form id="" class="report-form">
+        <div class="form-group">
+          <label for="item-image">Upload a Photo of the Lost item</label>
+          <input type="file" id="item-image" accept="image/*" required aria-label="Upload photo of the lost item" />
+        </div>
+
+        <div class="form-group">
+          <label for="item-description">Describe your item</label>
+          <textarea id="item-description" placeholder="e.g., Red backpack, library, zipper broken" required
+            aria-label="Description of the lost item"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="university-name">University</label>
+          <input type="text" id="university-name" value="Federal University of Technology, Akure" readonly disabled
+            aria-label="University name" />
+          <input type="hidden" name="university" value="Federal University of Technology, Akure" />
+        </div>
+
+        <div class="form-group">
+          <label for="item-location">
+            Where did you lose it?
+            <div class="info-container">
+              <i class="fa-solid fa-circle-info"></i>
+              <span class="info-text">
+                We try to detect the name of the place you click on, but it may not always be accurate. Feel free to correct it manually.
+              </span>
+            </div>
+          </label>
+          <p>Select on the map or type location manually</p>
+          <div id="map"></div>
+          <input type="text" name="custom-location"
+            placeholder="E.g. LT1, Engineering Building, Obakekere, Malu Road" />
+          <input type="hidden" name="lat" id="lat" />
+          <input type="hidden" name="lng" id="lng" />
+        </div>
+
+        <div class="form-group">
+          <label for="item-date">When did you lose it?</label>
+          <input type="date" id="item-date" required aria-label="Date the item was lost" />
+        </div>
+
+        <button type="submit" class="submit-button">
+          Submit Lost Item Report
+        </button>
+      </form>
+
+      <div id="successMessage" class="success-message" style="display: none">
+        <p>
+          Thanks! We’ve received your report. Our AI is now searching for a match. We’ll notify you if anything comes up.
+        </p>
+        <a href="./index.html" class="back-button">Back to Home</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="./scripts/map.js"></script>
+</body>
+
+</html>
