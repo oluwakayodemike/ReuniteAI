@@ -201,5 +201,12 @@ cropConfirm.addEventListener("click", () => {
   uploadedImageDataUrl = croppedImg.src;
   if (cropper) cropper.destroy();
 });
+
+cropModal.addEventListener("click", (event) => {
+  if (event.target === cropModal) {
+    cropModal.style.display = "none";
+    if (cropper) cropper.destroy();
+  }
+});
 </script>
 </html>
