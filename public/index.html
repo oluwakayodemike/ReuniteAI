@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./styles/style.css" />
+    <link rel="stylesheet" href="./styles/auth-modal.css">
     <title>ReuniteAI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,12 +30,12 @@
           <button type="submit">Log in</button>
         </form>
         <div class="extra-links">
-          <a href="#">Reset password</a> • <a href="#">Create account</a>
+          <a href="#">Reset password</a> • <a href="#" class="link-signup">Create account</a>
         </div>
       </div>
     </div>
 
-    <!-- Sign-up modal -->
+    <!-- sign-up modal -->
     <div id="signup-modal" class="modal hidden">
       <div class="modal-content">
         <button class="close-signup-modal">&times;</button>
@@ -145,6 +146,9 @@
     const signupModal = document.getElementById("signup-modal");
     const signupCloseBtn = signupModal.querySelector(".close-signup-modal");
 
+    const switchToSignup = document.querySelector(".link-signup");
+    const switchToLogin = document.querySelector(".link-login");
+
     function openModal() {
       modal.classList.remove("hidden");
       modalContent.classList.remove("fade-out");
@@ -195,6 +199,18 @@
       if (e.target === signupModal) {
         signupCloseBtn.click();
       }
+    });
+
+    switchToSignup.addEventListener("click", (e) => {
+      e.preventDefault();
+      modal.classList.add("hidden");
+      signupModal.classList.remove("hidden");
+    });
+
+    switchToLogin.addEventListener("click", (e) => {
+      e.preventDefault();
+      signupModal.classList.add("hidden");
+      modal.classList.remove("hidden");
     });
   </script>
 </html>
