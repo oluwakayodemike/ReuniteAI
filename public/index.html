@@ -15,6 +15,24 @@
   </head>
 
   <body>
+    <!-- login modal -->
+    <div id="login-modal" class="modal hidden">
+      <div class="modal-content">
+        <button class="close-modal">&times;</button>
+        <button class="microsoft-auth"><img src="./icons/microsoft.svg" alt="microsoft logo icon">Continue with Microsoft</button>
+        <div class="or">or</div>
+        <form class="login-form">
+          <label>Email</label>
+          <input type="email" placeholder="you@example.com" />
+          <label>Password</label>
+          <input type="password" placeholder="••••••••" />
+          <button type="submit">Log in</button>
+        </form>
+        <div class="extra-links">
+          <a href="#">Reset password</a> • <a href="#">Create account</a>
+        </div>
+      </div>
+    </div>
     <header>
       <nav class="navbar">
         <div class="nav-section nav-left">
@@ -94,4 +112,40 @@
       </div>
     </footer>
   </body>
+  <script>
+    const modal = document.getElementById("login-modal");
+    const modalContent = modal.querySelector(".modal-content");
+    const loginBtn = document.querySelector(".nav-auth");
+    const closeBtn = document.querySelector(".close-modal");
+
+    function openModal() {
+      modal.classList.remove("hidden");
+      modalContent.classList.remove("fade-out");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeModal() {
+      modalContent.classList.add("fade-out");
+      setTimeout(() => {
+        modal.classList.add("hidden");
+        modalContent.classList.remove("fade-out");
+        document.body.classList.remove("modal-open");
+      }, 300);
+    }
+
+    loginBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openModal();
+    });
+
+    closeBtn.addEventListener("click", () => {
+      closeModal();
+    });
+
+    window.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  </script>
 </html>

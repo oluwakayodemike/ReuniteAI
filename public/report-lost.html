@@ -13,6 +13,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"/>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://kit.fontawesome.com/cdfe75faaa.js" crossorigin="anonymous"></script>
 </head>
@@ -48,6 +49,9 @@
         <div class="form-group">
           <label for="item-image">Upload a Photo of the Lost item</label>
           <input type="file" id="item-image" accept="image/*" required aria-label="Upload photo of the lost item" />
+          <div id="image-preview" class="image-preview">
+            <span id="crop-icon" class="crop-icon"><i class="fa-solid fa-crop-simple"></i></span>
+          </div>
         </div>
 
         <div class="form-group">
@@ -99,7 +103,111 @@
       </div>
     </section>
   </main>
-</body>
-<script src="./scripts/map.js"></script>
 
+  <!-- cropper modal -->
+  <div id="crop-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span id="crop-close" class="close">&times;</span>
+      <h3>Highlight the found item in the photo so we can reunite it faster</h3>
+      <img id="crop-image" src="" alt="Crop area preview" style="max-width: 100%;" />
+      <button id="crop-confirm" class="submit-button" style="margin-top: 12px;">Crop & Save</button>
+    </div>
+  </div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="./scripts/map.js"></script>
+<script>
+const imageInput = document.getElementById("item-image");
+const previewImage = document.getElementById("image-preview");
+const cropIcon = document.getElementById("crop-icon");
+
+const cropModal = document.getElementById("crop-modal");
+const cropImage = document.getElementById("crop-image");
+const cropConfirm = document.getElementById("crop-confirm");
+const cropClose = document.getElementById("crop-close");
+
+let uploadedImageDataUrl = null;
+let cropper;
+
+imageInput.addEventListener("change", () => {
+  previewImage.innerHTML = "";
+  previewImage.appendChild(cropIcon);
+
+  const file = imageInput.files[0];
+  if (file && file.type.startsWith("image/")) {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      uploadedImageDataUrl = e.target.result;
+      const img = document.createElement("img");
+      img.src = uploadedImageDataUrl;
+      img.alt = "uploaded image preview";
+      img.style.maxWidth = "100%";
+      img.style.marginTop = "10px";
+      previewImage.appendChild(img);
+      cropIcon.style.display = "block";
+    };
+
+    reader.readAsDataURL(file);
+  } else {
+    cropIcon.style.display = "none";
+  }
+});
+
+cropIcon.addEventListener("click", () => {
+  if (!uploadedImageDataUrl) return;
+  cropModal.style.display = "flex";
+  cropImage.src = uploadedImageDataUrl;
+
+  cropImage.onload = () => {
+    if (cropper) cropper.destroy();
+    cropper = new Cropper(cropImage, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: "move",
+      autoCropArea: 1,
+      cropBoxResizable: false,
+      cropBoxMovable: true,
+      ready() {
+        const cropBoxData = cropper.getCropBoxData();
+        cropper.setCropBoxData({
+          width: 224,
+          height: 224,
+          left: cropBoxData.left,
+          top: cropBoxData.top,
+        });
+      },
+    });
+  };
+});
+
+cropClose.addEventListener("click", () => {
+  cropModal.style.display = "none";
+  if (cropper) cropper.destroy();
+});
+
+cropConfirm.addEventListener("click", () => {
+  if (!cropper) return;
+  const canvas = cropper.getCroppedCanvas({ width: 224, height: 224 });
+  const croppedImg = document.createElement("img");
+  croppedImg.src = canvas.toDataURL("image/jpeg");
+  croppedImg.alt = "cropped image";
+
+  previewImage.innerHTML = "";
+  previewImage.appendChild(cropIcon);
+  previewImage.appendChild(croppedImg);
+  cropModal.style.display = "none";
+
+  uploadedImageDataUrl = croppedImg.src;
+  if (cropper) cropper.destroy();
+});
+
+cropModal.addEventListener("click", (event) => {
+  if (event.target === cropModal) {
+    cropModal.style.display = "none";
+    if (cropper) cropper.destroy();
+  }
+});
+</script>
+</html>
 </html>
