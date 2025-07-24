@@ -33,6 +33,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Sign-up modal -->
+    <div id="signup-modal" class="modal hidden">
+      <div class="modal-content">
+        <button class="close-signup-modal">&times;</button>
+        <h2 class="modal-title">Welcome to ReuniteAI</h2>
+        <p class="terms-text">
+          By clicking "Create account", you agree to the ReuniteAI <a href="#">Terms of Service</a> and acknowledge the <a href="#">Privacy Policy</a>.
+        </p>
+        <button class="microsoft-auth"><img src="./icons/microsoft.svg" alt="microsoft logo icon">Continue with Microsoft</button>
+        <div class="or">or</div>
+        <form class="signup-form">
+          <label>Email</label>
+          <input type="email" placeholder="you@example.com" />
+          <label>Password</label>
+          <input type="password" placeholder="••••••••" />
+          <button type="submit">Create account</button>
+        </form>
+        <div class="extra-links">
+          <p class="existing-acct">Already have an account? <a href="#" class="link-login">Log in</a></p>
+        </div>
+      </div>
+    </div>
+
     <header>
       <nav class="navbar">
         <div class="nav-section nav-left">
@@ -117,6 +141,9 @@
     const modalContent = modal.querySelector(".modal-content");
     const loginBtn = document.querySelector(".nav-auth");
     const closeBtn = document.querySelector(".close-modal");
+    const signupBtn = document.querySelector(".nav-auth.outlined");
+    const signupModal = document.getElementById("signup-modal");
+    const signupCloseBtn = signupModal.querySelector(".close-signup-modal");
 
     function openModal() {
       modal.classList.remove("hidden");
@@ -145,6 +172,28 @@
     window.addEventListener("click", (e) => {
       if (e.target === modal) {
         closeModal();
+      }
+    });
+
+    signupBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      signupModal.classList.remove("hidden");
+      signupModal.querySelector(".modal-content").classList.remove("fade-out");
+      document.body.classList.add("modal-open");
+    });
+
+    signupCloseBtn.addEventListener("click", () => {
+      signupModal.querySelector(".modal-content").classList.add("fade-out");
+      setTimeout(() => {
+        signupModal.classList.add("hidden");
+        signupModal.querySelector(".modal-content").classList.remove("fade-out");
+        document.body.classList.remove("modal-open");
+      }, 300);
+    });
+
+    window.addEventListener("click", (e) => {
+      if (e.target === signupModal) {
+        signupCloseBtn.click();
       }
     });
   </script>
