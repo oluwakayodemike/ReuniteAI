@@ -31,11 +31,9 @@ export const reportItem = async (req, res) => {
       item_date: date,
       embedding,
     });
-    console.log('saved succesfully!');
-
     res.status(200).json({ message: 'Item reported and saved successfully!' });
   } catch (error) {
     console.error('Error:', error.message);
-    res.status(500).json({ message: 'Imternal Server Error.' });
+    res.status(500).json({ message: 'Internal Server Error.' });
   }
 };

@@ -12,21 +12,30 @@ const connection = connect({
 });
 
 export const createItem = async (itemData) => {
-  const { status, description, university, location, latitude, longitude, item_date, embedding } = itemData;
-  const embeddingData = JSON.stringify(embedding);
+  try {
+    const { status, description, university, location, latitude, longitude, item_date, embedding } = itemData;
 
-  const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+    const lat = latitude || null;
+    const lgt = longitude || null;
+    const embeddingData = JSON.stringify(embedding);
 
-  const params = [
-    status, 
-    description, 
-    university, 
-    location, 
-    latitude, 
-    longitude, 
-    item_date, 
-    embeddingData
-  ];
+    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
 
-  await connection.execute(sql, params);
+    const params = [
+      status, 
+      description, 
+      university, 
+      location, 
+      lat, 
+      lgt, 
+      item_date, 
+      embeddingData
+    ];
+
+    await connection.execute(sql, params);
+    console.log("item saved succesfully");
+  } catch (err) {
+    console.log("Error inserting data to TiDB")
+    throw err;
+  }
 };
