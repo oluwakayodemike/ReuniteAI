@@ -7,10 +7,13 @@ const cropImage = document.getElementById("crop-image");
 const cropConfirm = document.getElementById("crop-confirm");
 const cropClose = document.getElementById("crop-close");
 
+const reportForm = document.querySelector('.report-form');
+const submitButton = document.querySelector('.submit-button');
+const successMessage = document.getElementById('successMessage');
 
 let uploadedImageDataUrl = null;
 let cropper;
-let finalImage = null; 
+let finalImage = null;
 
 imageInput.addEventListener("change", () => {
   previewImage.innerHTML = "";
@@ -46,33 +49,6 @@ cropIcon.addEventListener("click", () => {
   });
 });
 
-// cropIcon.addEventListener("click", () => {
-//   if (!uploadedImageDataUrl) return;
-//   cropModal.style.display = "flex";
-//   cropImage.src = uploadedImageDataUrl;
-
-//   cropImage.onload = () => {
-//     if (cropper) cropper.destroy();
-//     cropper = new Cropper(cropImage, {
-//       aspectRatio: 1,
-//       viewMode: 1,
-//       dragMode: "move",
-//       autoCropArea: 1,
-//       cropBoxResizable: false,
-//       cropBoxMovable: true,
-//       ready() {
-//         const cropBoxData = cropper.getCropBoxData();
-//         cropper.setCropBoxData({
-//           width: 224,
-//           height: 224,
-//           left: cropBoxData.left,
-//           top: cropBoxData.top,
-//         });
-//       },
-//     });
-//   };
-// });
-
 cropClose.addEventListener("click", () => {
   cropModal.style.display = "none";
   if (cropper) cropper.destroy();
@@ -94,4 +70,50 @@ cropConfirm.addEventListener("click", () => {
 
   cropModal.style.display = "none";
   if (cropper) cropper.destroy();
+});
+
+// form submission
+reportForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  // get status from form's data attribute
+  const status = reportForm.dataset.status;
+
+  const formData = new FormData();
+  const imageName = imageInput.files[0]?.name || 'item-image.jpg';
+
+  formData.append('itemImage', finalImage, imageName);
+  formData.append('description', document.getElementById('item-description').value);
+  formData.append('university', document.querySelector('input[name="university"]').value);
+  formData.append('customLocation', document.querySelector('input[name="custom-location"]').value);
+  formData.append('lat', document.getElementById('lat').value);
+  formData.append('lng', document.getElementById('lng').value);
+  formData.append('date', document.getElementById('item-date').value);
+  formData.append('status', status);
+
+  submitButton.disabled = true;
+  submitButton.textContent = 'Submitting...';
+
+  try {
+    const response = await fetch('http://localhost:3001/api/items/report', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('success:', result);
+
+    reportForm.style.display = 'none';
+    successMessage.style.display = 'block';
+
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to submit report. Please try again.');
+    submitButton.disabled = false;
+    submitButton.textContent = 'Submit Report';
+  }
 });
