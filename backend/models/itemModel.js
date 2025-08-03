@@ -47,7 +47,6 @@ export const findSimilarItems = async (embedding) => {
   const sql = "SELECT id, description, location, item_date, vec_cosine_distance(embedding, ?) AS distance FROM items WHERE status = 'found' ORDER BY distance LIMIT 5;";
 
   const results = await connection.execute(sql, [embeddingData]);
-
-  console.log("raw response:", JSON.stringify(results, null, 2));
+  
   return results || [];
 };

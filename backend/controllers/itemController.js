@@ -6,8 +6,7 @@ const BENTO_URL = process.env.CLIP_API_URL;
 
 export const reportItem = async (req, res) => {
   try {
-    const { status, description, university, customLocation, lat, lng, date } =
-      req.body;
+    const { status, description, university, customLocation, lat, lng, date } = req.body;
     const imageBuffer = req.file.buffer;
 
     const form = new FormData();
@@ -41,8 +40,7 @@ export const reportItem = async (req, res) => {
 
 export const searchItems = async (req, res) => {
   try {
-    const { description, university, customLocation, lat, lng, date } =
-      req.body;
+    const { description, university, customLocation, lat, lng, date } = req.body;
     const imageBuffer = req.file.buffer;
 
     const form = new FormData();
