@@ -2,6 +2,8 @@ import { connect } from '@tidbcloud/serverless';
 import fetch from 'node-fetch';
 import https from 'https';
 
+const SIMILARITY_THRESHOLD = 0.15;
+
 const agent = new https.Agent({
   rejectUnauthorized: false,
 });
@@ -33,7 +35,6 @@ export const createItem = async (itemData) => {
     ];
 
     await connection.execute(sql, params);
-    console.log("item saved succesfully");
   } catch (err) {
     console.log("Error inserting data to TiDB")
     throw err;
@@ -44,9 +45,24 @@ export const createItem = async (itemData) => {
 export const findSimilarItems = async (embedding) => {
   const embeddingData = JSON.stringify(embedding);
 
-  const sql = "SELECT id, description, location, item_date, vec_cosine_distance(embedding, ?) AS distance FROM items WHERE status = 'found' ORDER BY distance LIMIT 5;";
+  const sql = `
+    SELECT * FROM (
+      SELECT 
+        id, 
+        description, 
+        location, 
+        item_date, 
+        vec_cosine_distance(embedding, ?) AS distance 
+      FROM items 
+      WHERE status = 'found'
+    ) AS search_results
+    WHERE distance < ? 
+    ORDER BY distance 
+    LIMIT 5;
+  `;
 
-  const results = await connection.execute(sql, [embeddingData]);
-  
+  const params = [embeddingData, SIMILARITY_THRESHOLD];
+  const results = await connection.execute(sql, params);
+
   return results || [];
 };
