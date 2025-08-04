@@ -2,7 +2,7 @@ import { connect } from '@tidbcloud/serverless';
 import fetch from 'node-fetch';
 import https from 'https';
 
-const SIMILARITY_THRESHOLD = 0.15;
+const SIMILARITY_THRESHOLD = 0.4;
 
 const agent = new https.Agent({
   rejectUnauthorized: false,
@@ -35,6 +35,7 @@ export const createItem = async (itemData) => {
     ];
 
     await connection.execute(sql, params);
+    console.log("item saved succesfully");
   } catch (err) {
     console.log("Error inserting data to TiDB")
     throw err;
@@ -42,27 +43,44 @@ export const createItem = async (itemData) => {
 };
 
 // similarity search logic:
-export const findSimilarItems = async (embedding) => {
+export const findSimilarItems = async (embedding, description) => {
   const embeddingData = JSON.stringify(embedding);
 
-  const sql = `
-    SELECT * FROM (
-      SELECT 
-        id, 
-        description, 
-        location, 
-        item_date, 
-        vec_cosine_distance(embedding, ?) AS distance 
-      FROM items 
-      WHERE status = 'found'
-    ) AS search_results
-    WHERE distance < ? 
-    ORDER BY distance 
+  const textSearchQuery = `
+    SELECT id 
+    FROM items 
+    WHERE status = 'found' AND fts_match_word(?, description);
+  `;
+
+  const textMatches = await connection.execute(textSearchQuery, [description]);
+
+  if (!textMatches || textMatches.length === 0) {
+    console.log("No text matches found.");
+    return [];
+  }
+  const candidateIDs = textMatches.map(row => row.id);
+  console.log(`fts matching IDs: [${candidateIDs.join(', ')}]`);
+
+  // run vector search ONLY on the pre-filtered candidate IDs
+  const placeholders = candidateIDs.map(() => '?').join(',');
+  const vectorSearchQuery = `
+    SELECT
+      id,
+      description,
+      location,
+      item_date,
+      vec_cosine_distance(embedding, ?) AS distance
+    FROM items
+    WHERE id IN (${placeholders})
+    ORDER BY distance
     LIMIT 5;
   `;
 
-  const params = [embeddingData, SIMILARITY_THRESHOLD];
-  const results = await connection.execute(sql, params);
+  const vectorMatches = await connection.execute(vectorSearchQuery, [embeddingData, ...candidateIDs]);
 
-  return results || [];
+  // filtering final results by similarity threshold
+  const rankedMatches = vectorMatches
+    .filter(item => item.distance < SIMILARITY_THRESHOLD);
+    
+  return rankedMatches;
 };
