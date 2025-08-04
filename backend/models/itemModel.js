@@ -15,13 +15,13 @@ const connection = connect({
 
 export const createItem = async (itemData) => {
   try {
-    const { status, description, university, location, latitude, longitude, item_date, embedding } = itemData;
+    const { status, description, university, location, latitude, longitude, item_date, embedding, image_url } = itemData;
 
     const lat = latitude || null;
     const lgt = longitude || null;
     const embeddingData = JSON.stringify(embedding);
 
-    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`;
 
     const params = [
       status, 
@@ -31,7 +31,8 @@ export const createItem = async (itemData) => {
       lat, 
       lgt, 
       item_date, 
-      embeddingData
+      embeddingData,
+      image_url
     ];
 
     await connection.execute(sql, params);
@@ -69,6 +70,7 @@ export const findSimilarItems = async (embedding, description) => {
       description,
       location,
       item_date,
+      image_url,
       vec_cosine_distance(embedding, ?) AS distance
     FROM items
     WHERE id IN (${placeholders})
