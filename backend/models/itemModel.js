@@ -2,7 +2,7 @@ import { connect } from '@tidbcloud/serverless';
 import fetch from 'node-fetch';
 import https from 'https';
 
-const SIMILARITY_THRESHOLD = 0.4;
+const SIMILARITY_THRESHOLD = 0.25;
 
 const agent = new https.Agent({
   rejectUnauthorized: false,
@@ -83,6 +83,6 @@ export const findSimilarItems = async (embedding, description) => {
   // filtering final results by similarity threshold
   const rankedMatches = vectorMatches
     .filter(item => item.distance < SIMILARITY_THRESHOLD);
-    
+
   return rankedMatches;
 };

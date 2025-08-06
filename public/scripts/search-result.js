@@ -26,14 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
             itemElement.className = 'item-card';
 
             const itemDate = item.item_date ? new Date(item.item_date).toLocaleDateString() : 'N/A';
-            
+            const imageUrl = item.image_url || 'https://placehold.co/224x224/eee/ccc?text=Image+Not+Available';
+            const confidenceScore = Math.round((1 - item.distance) * 100);
+
             itemElement.innerHTML = `
-                <img src="https://placehold.co/224x224/eee/ccc?text=Item+Image" alt="Item Image">
+                <img src="${imageUrl}" alt="Photo of ${item.description || 'found item'}">
                 <div class="item-desc">
                     <p><strong>Description:</strong> ${item.description || 'No description provided.'}</p>
                     <p><strong>Location Found:</strong> ${item.location || 'No location provided.'}</p>
                     <p><strong>Date Found:</strong> ${itemDate}</p>
-                    <p class="similarity-score">Similarity Score: ${item.distance.toFixed(2)}</p>
+                    <p class="similarity-score">Match Confidence: ${confidenceScore}%</p>
                     <button class="claim-button">Claim Item</button>
                 </div>
             `;

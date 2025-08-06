@@ -80,7 +80,7 @@
       console.log("successfully got embed...");
 
       const cleanedDescription = cleanUpDesc(description);
-      console.log(`Performing hybrid search with cleaned text: "${cleanedDescription}"`);
+      console.log(`Performing search with cleaned text: "${cleanedDescription}"`);
 
 
       const matches = await findSimilarItems(embedding, cleanedDescription);
