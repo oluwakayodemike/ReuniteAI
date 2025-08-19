@@ -92,10 +92,13 @@ reportForm.addEventListener('submit', async (event) => {
   formData.append('status', status);
 
   submitButton.disabled = true;
-  submitButton.textContent = 'Submitting...';
+  submitButton.innerHTML = '<div class="loading-spinner"></div>';
 
+  const endpoint = status === 'lost' 
+    ? 'http://localhost:3001/api/search' 
+    : 'http://localhost:3001/api/items/report';
   try {
-    const response = await fetch('http://localhost:3001/api/items/report', {
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
     });
@@ -105,10 +108,15 @@ reportForm.addEventListener('submit', async (event) => {
     }
 
     const result = await response.json();
-    console.log('success:', result);
+    console.log('API response:', result);
 
-    reportForm.style.display = 'none';
-    successMessage.style.display = 'block';
+    if (status === 'lost') {
+      sessionStorage.setItem('searchResults', JSON.stringify(result.matches));
+      window.location.href = './search-result.html';
+    } else {
+      reportForm.style.display = 'none';
+      successMessage.style.display = 'block';
+    }
 
   } catch (error) {
     console.error('Error:', error);
