@@ -1,3 +1,20 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const collapsibleToggle = document.querySelector('.collapsible-toggle');
+    if (collapsibleToggle) {
+        collapsibleToggle.addEventListener('click', function() {
+            const collapsible = this.parentElement;
+            collapsible.classList.toggle('active');
+
+            const content = this.nextElementSibling;
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    }
+});
+
 const imageInput = document.getElementById("item-image");
 const previewImage = document.getElementById("image-preview");
 const cropIcon = document.getElementById("crop-icon");
@@ -91,6 +108,11 @@ reportForm.addEventListener('submit', async (event) => {
   formData.append('date', document.getElementById('item-date').value);
   formData.append('status', status);
 
+  if (status === 'found') {
+    formData.append('verification_question', document.getElementById('verification-question').value);
+    formData.append('verification_answer', document.getElementById('verification-answer').value);
+  }
+  
   submitButton.disabled = true;
   submitButton.innerHTML = '<div class="loading-spinner"></div>';
 

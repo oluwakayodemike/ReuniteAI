@@ -89,6 +89,29 @@
           <label for="item-date">When did you find it?</label>
           <input type="date" id="item-date" required aria-label="Date the item was found" />
         </div>
+        
+        <div class="verification-section collapsible">
+            <div class="collapsible-toggle">
+                <div class="toggle-text-content">
+                    <h3 class="verification-title">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        Add a Security Question <span class="optional-text">(Optional)</span>
+                    </h3>
+                    <p class="verification-info">To prevent fraud, add a simple question about a unique detail of the item.</p>
+                </div>
+                <i class="fa-solid fa-chevron-down toggle-icon"></i>
+            </div>
+            <div class="collapsible-content">
+                <div class="form-group">
+                    <label for="verification-question">Verification Question</label>
+                    <input type="text" id="verification-question" name="verification_question" placeholder="e.g., What's in the front pocket of the bag?" />
+                </div>
+                <div class="form-group">
+                    <label for="verification-answer">Correct Answer</label>
+                    <input type="text" id="verification-answer" name="verification_answer" placeholder="e.g., My old school ID and some pens" />
+                </div>
+            </div>
+        </div>
 
         <button type="submit" class="submit-button">
           Submit Found Item Report
@@ -113,8 +136,9 @@
       <button id="crop-confirm" class="submit-button" style="margin-top: 12px;">Crop & Save</button>
     </div>
   </div>
-</body>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="./scripts/map.js"></script>
 <script src="./scripts/report-form.js" defer></script>
+</body>
 </html>

@@ -15,13 +15,13 @@ const connection = connect({
 
 export const createItem = async (itemData) => {
   try {
-    const { status, description, university, location, latitude, longitude, item_date, embedding, image_url } = itemData;
+    const { status, description, university, location, latitude, longitude, item_date, embedding, image_url, verification_question, verification_answer } = itemData;
 
     const lat = latitude || null;
     const lgt = longitude || null;
     const embeddingData = JSON.stringify(embedding);
 
-    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding, image_url, verification_question, verification_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
 
     const params = [
       status, 
@@ -32,7 +32,9 @@ export const createItem = async (itemData) => {
       lgt, 
       item_date, 
       embeddingData,
-      image_url
+      image_url,
+      verification_question || null, 
+      verification_answer || null
     ];
 
     await connection.execute(sql, params);

@@ -157,6 +157,78 @@
   margin-bottom: 15px;
 }
 
+.verification-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 0;
+  margin-top: 20px;
+  background-color: #f9f9f9;
+  overflow: hidden;
+}
+
+.collapsible-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-text-content {
+  text-align: left;
+}
+
+.verification-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.verification-title i {
+  margin-right: 10px;
+  color: #0073e6;
+}
+
+.verification-title .optional-text {
+  color: #777;
+  font-weight: 400;
+  font-size: 0.9em;
+  margin-left: 8px;
+}
+
+.verification-info {
+  font-size: 14px;
+  color: #555;
+  margin-top: 8px;
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.toggle-icon {
+  font-size: 16px;
+  color: #555;
+  transition: transform 0.3s ease;
+}
+
+.collapsible.active .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    padding: 0 24px;
+}
+
+.collapsible-content .form-group {
+    margin-bottom: 20px;
+}
+
 .submit-button {
   padding: 12px;
   background-color: #ff4d4f;
@@ -174,18 +246,18 @@
 }
 
 .submit-button .loading-spinner {
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top: 3px solid #fff;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .success-message {
