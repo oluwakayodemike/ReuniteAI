@@ -15,13 +15,13 @@ const connection = connect({
 
 export const createItem = async (itemData) => {
   try {
-    const { status, description, university, location, latitude, longitude, item_date, embedding, image_url } = itemData;
+    const { status, description, university, location, latitude, longitude, item_date, embedding, image_url, verification_question, verification_answer } = itemData;
 
     const lat = latitude || null;
     const lgt = longitude || null;
     const embeddingData = JSON.stringify(embedding);
 
-    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+    const sql = `INSERT INTO items (status, description, university, location, latitude, longitude, item_date, embedding, image_url, verification_question, verification_answer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
 
     const params = [
       status, 
@@ -32,7 +32,9 @@ export const createItem = async (itemData) => {
       lgt, 
       item_date, 
       embeddingData,
-      image_url
+      image_url,
+      verification_question || null, 
+      verification_answer || null
     ];
 
     await connection.execute(sql, params);
@@ -85,4 +87,33 @@ export const findSimilarItems = async (embedding, description) => {
     .filter(item => item.distance < SIMILARITY_THRESHOLD);
 
   return rankedMatches;
+};
+
+export const getItemById = async (itemId) => {
+  const sql = "SELECT * FROM items WHERE id = ?";
+  try {
+    const rows = await connection.execute(sql, [itemId]);
+    console.log("TiDB result:", rows);
+    
+    if (!rows || rows.length === 0) {
+      console.warn(`No item found with id: ${itemId}`);
+      return null;
+    }
+    return rows[0];
+  } catch (error) {
+    console.error(`Error fetching item with id ${itemId}:`, error);
+    throw new Error("Failed to fetch item from database");
+  }
+};
+
+export const getLatestLostItem = async () => {
+  const sql = "SELECT * FROM items WHERE status = 'lost' ORDER BY id DESC LIMIT 1;";
+  try {
+    const rows = await connection.execute(sql);
+    console.log("TiDB result:", rows);
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.error(`Error fetching latest lost item:`, error);
+    throw new Error("Failed to fetch latest lost item");
+  }
 };
