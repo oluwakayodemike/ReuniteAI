@@ -1,6 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, getItemById, getLatestLostItem } from "../models/itemModel.js";
+import { createItem, findSimilarItems, getItemById, getLatestLostItem, updateItemStatusToClaimed } from "../models/itemModel.js";
+import { createClaim  } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
 const BENTO_URL = process.env.CLIP_API_URL;
@@ -170,13 +171,26 @@ export const verifyClaim = async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY || ""; 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
     
+    console.log(payload);
+    
     const geminiResponse = await axios.post(apiUrl, payload);
     const decision = geminiResponse.data.candidates[0].content.parts[0].text.trim().toLowerCase();
     
     console.log(`ReasoningAgent Decision: ${decision}`);
 
     if (decision === 'yes') {
-      res.status(200).json({ verified: true, message: "Claim approved!" });
+      const pickupCode = `R-AI-${Math.floor(1000 + Math.random() * 9000)}`;
+      
+      await createClaim({
+          lost_item_id: lostItem.id,
+          found_item_id: foundItem.id,
+          claimant_email: claimantEmail || 'claimant@reunite.ai',
+          pickup_code: pickupCode
+      });
+    
+      await updateItemStatusToClaimed(foundItem.id);
+
+      res.status(200).json({ verified: true, pickupCode: pickupCode });
     } else {
       res.status(200).json({ verified: false, message: "Your claim has been submitted for manual review." });
     }

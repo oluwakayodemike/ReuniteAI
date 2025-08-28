@@ -117,3 +117,14 @@ export const getLatestLostItem = async () => {
     throw new Error("Failed to fetch latest lost item");
   }
 };
+
+export const updateItemStatusToClaimed = async (found_item_id) => {
+    const sql = "UPDATE items SET status = 'claimed' WHERE id = ?;";
+    try {
+        await connection.execute(sql, [found_item_id]);
+        console.log(`ClaimAgent: Updated item ${found_item_id} status to 'claimed'.`);
+    } catch (error) {
+        console.error(`ClaimAgent Error: Failed to update item status for ID ${found_item_id}.`, error);
+        throw new Error("Failed to update item status.");
+    }
+};
