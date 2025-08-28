@@ -117,7 +117,7 @@ reportForm.addEventListener('submit', async (event) => {
   submitButton.innerHTML = '<div class="loading-spinner"></div>';
 
   const endpoint = status === 'lost' 
-    ? 'http://localhost:3001/api/search' 
+    ? 'http://localhost:3001/api/items/search' 
     : 'http://localhost:3001/api/items/report';
   try {
     const response = await fetch(endpoint, {
