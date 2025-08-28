@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultsSubtitle = document.querySelector(".results-subtitle");
   const storedResults = sessionStorage.getItem("searchResults");
 
-  const createVerificationModal = document.getElementById("verification-modal");
+  const verificationModal = document.getElementById("verification-modal");
   const verificationContent = document.getElementById("verification-content");
   const closecreateVerificationModal = document.querySelector(".close-verification-modal");
 
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <button type="submit" class="submit-button">Submit</button>
             </form>
         `;
-    createVerificationModal.style.display = "flex";
+    verificationModal.style.display = "flex";
 
     const form = verificationContent.querySelector("#verification-form");
     form.addEventListener("submit", handleVerificationSubmit);
@@ -160,9 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p>Your claim has been verified. Use the code below to pick up your item from campus security.</p>
                 <div class="pickup-code-container">
                     <p>Your Unique Pickup Code:</p>
-                    <div class="pickup-code" id="pickup-code-text">R-AI-${Math.floor(
-                      1000 + Math.random() * 9000
-                    )}</div>
+                    <div class="pickup-code" id="pickup-code-text">${result.pickupCode}</div>
                     <button class="copy-button" id="copy-code-btn">
                         <i class="fas fa-copy"></i> Copy Code
                     </button>
@@ -215,11 +213,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   closecreateVerificationModal.onclick = () => {
-    createVerificationModal.style.display = "none";
+    verificationModal.style.display = "none";
   };
   window.onclick = (event) => {
     if (event.target == createVerificationModal) {
-      createVerificationModal.style.display = "none";
+      verificationModal.style.display = "none";
     }
   };
 
