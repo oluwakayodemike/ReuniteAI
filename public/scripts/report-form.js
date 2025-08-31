@@ -134,7 +134,7 @@ reportForm.addEventListener('submit', async (event) => {
 
     if (status === 'lost') {
       sessionStorage.setItem('searchResults', JSON.stringify(result.matches));
-      window.location.href = './search-result.html';
+      window.location.href = `./search-result.html?lostItemId=${result.lostItemId}`;
     } else {
       reportForm.style.display = 'none';
       successMessage.style.display = 'block';

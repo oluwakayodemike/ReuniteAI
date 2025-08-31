@@ -1,63 +1,60 @@
 document.addEventListener("DOMContentLoaded", () => {
   const resultsContainer = document.getElementById("results-container");
   const resultsSubtitle = document.querySelector(".results-subtitle");
-  const storedResults = sessionStorage.getItem("searchResults");
+
 
   const verificationModal = document.getElementById("verification-modal");
   const verificationContent = document.getElementById("verification-content");
-  const closecreateVerificationModal = document.querySelector(".close-verification-modal");
+  const closeVerificationModal = document.querySelector(".close-verification-modal");
 
   let currentFoundItemId = null;
 
-  const renderSearchResults = () => {
-    if (storedResults) {
-      const matches = JSON.parse(storedResults);
-      sessionStorage.removeItem("searchResults");
+  const urlParams = new URLSearchParams(window.location.search);
+  const lostItemId = urlParams.get('lostItemId');
 
-      resultsContainer.innerHTML = "";
-      if (matches.length === 0) {
-        resultsSubtitle.textContent =
-          "We couldn't find any immediate matches for your item.";
-        resultsContainer.innerHTML = 
-            `<div class="no-matches-message">
-                <h3>No potential matches found.</h3>
-                <p>We've saved your report and will notify you of new matches.</p>
-            </div>`;
-      } else {
+  async function fetchAndRenderMatches(id) {
+    try {
+        const response = await fetch(`http://localhost:3001/api/items/matches/${id}`);
+        if (!response.ok) {
+            throw new Error('Could not fetch matches.');
+        }
+        const data = await response.json();
+        renderSearchResults(data.matches);
+    } catch (error) {
+        console.error("Error fetching matches:", error);
+        resultsContainer.innerHTML = '<p class="no-matches-message">We couldn’t find any items that match currently. We will notify you if anything comes up.</p>';
+    }
+  }
+  
+  const renderSearchResults = (matches) => {
+    resultsContainer.innerHTML = "";
+    if (!matches || matches.length === 0) {
+        resultsSubtitle.textContent = "We couldn't find any immediate matches for your item.";
+        resultsContainer.innerHTML = `<div class="no-matches-message"><h3>No potential matches found.</h3><p>We've saved your report and will notify you of new matches.</p></div>`;
+    } else {
         resultsSubtitle.textContent = `Based on your report, we found ${matches.length} potential match${matches.length > 1 ? "es" : ""}.`;
-      }
+    }
 
-      matches.forEach((item) => {
+    matches.forEach((item) => {
         const itemElement = document.createElement("div");
         itemElement.className = "item-card";
         const confidenceScore = Math.round((1 - item.distance) * 100);
 
         itemElement.innerHTML = `
-                    <img src="${
-                      item.image_url ||
-                      "https://placehold.co/224x224/eee/ccc?text=Image"
-                    }" alt="Photo of ${item.description}">
-                    <div class="item-desc">
-                        <p><strong>Description:</strong> ${item.description}</p>
-                        <p><strong>Location Found:</strong> ${item.location}</p>
-                        <p><strong>Date Found:</strong> ${new Date(
-                          item.item_date
-                        ).toLocaleDateString()}</p>
-                        <p class="similarity-score">Match Confidence: <strong>${confidenceScore}%</strong></p>
-                        <button class="claim-button" data-found-id="${
-                          item.id
-                        }">Claim Item</button>
-                    </div>
-                `;
+            <img src="${item.image_url || 'https://placehold.co/224x224/eee/ccc?text=Image'}" alt="Photo of ${item.description}">
+            <div class="item-desc">
+                <p><strong>Description:</strong> ${item.description}</p>
+                <p><strong>Location Found:</strong> ${item.location}</p>
+                <p><strong>Date Found:</strong> ${new Date(item.item_date).toLocaleDateString()}</p>
+                <p class="similarity-score">Match Confidence: <strong>${confidenceScore}%</strong></p>
+                <button class="claim-button" data-found-id="${item.id}">Claim Item</button>
+            </div>
+        `;
         resultsContainer.appendChild(itemElement);
-      });
-
-      addClaimButtonListeners();
-    } else {
-      resultsSubtitle.textContent = "There are no results to display.";
-      resultsContainer.innerHTML =
-        '<p class="no-matches-message">No search was performed. Please go back and report a lost item first.</p>';
-    }
+    });
+    
+    addClaimButtonListeners();
+    
   };
 
   function addClaimButtonListeners() {
@@ -120,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const submitButton = e.target.querySelector(".submit-button");
     const claimantAnswerInput = e.target.querySelector("#claimant-answer");
-    const claimantEmailInput = e.target.querySelector("#claimant-email");
 
     submitButton.disabled = true;
     submitButton.innerHTML =
@@ -128,8 +124,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const payload = {
       foundItemId: currentFoundItemId,
+      lostItemId: lostItemId,
       claimantAnswer: claimantAnswerInput.value,
-      claimantEmail: claimantEmailInput ? claimantEmailInput.value : null,
     };
 
     try {
@@ -212,14 +208,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  closecreateVerificationModal.onclick = () => {
+  closeVerificationModal.onclick = () => {
     verificationModal.style.display = "none";
   };
   window.onclick = (event) => {
-    if (event.target == createVerificationModal) {
+    if (event.target == verificationModal) {
       verificationModal.style.display = "none";
     }
   };
 
-  renderSearchResults();
+  if (lostItemId) {
+    fetchAndRenderMatches(lostItemId);
+  } else {
+    // if no ID, then show the "no search" message.
+    resultsSubtitle.textContent = "There are no results to display.";
+    resultsContainer.innerHTML =
+      '<p class="no-matches-message">No search was performed. Please go back and report a lost item first.</p>';
+  }
 });

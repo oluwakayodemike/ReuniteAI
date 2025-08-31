@@ -1,6 +1,6 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, getItemById, getLatestLostItem, updateItemStatusToClaimed } from "../models/itemModel.js";
+import { createItem, findSimilarItems, getItemById, updateItemStatusToClaimed } from "../models/itemModel.js";
 import { createClaim  } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
@@ -82,14 +82,7 @@ export const searchItems = async (req, res) => {
     const embedding = bentoResponse.data[0];
     console.log("successfully got embed...");
 
-    const cleanedDescription = cleanUpDesc(description);
-    console.log(`Performing search with cleaned text: "${cleanedDescription}"`);
-
-
-    const matches = await findSimilarItems(embedding, cleanedDescription);
-    console.log("Found potential matches:", matches);
-
-    await createItem({
+    const newLostItem = await createItem({
       status: "lost",
       description,
       university,
@@ -100,10 +93,35 @@ export const searchItems = async (req, res) => {
       embedding,
       image_url: imageUrl
     });
-    res.status(200).json({ message: "search complete", matches: matches });
+
+    res.status(200).json({ 
+      message: "search initiated",
+      lostItemId: newLostItem.id
+    });
+
   } catch (error) {
     console.error("Error:", error.message);
     res.status(500).json({ message: "An error occurred during search." });
+  }
+};
+
+export const getMatchesForLostItem = async (req, res) => {
+  try {
+      const { lostItemId } = req.params;
+      console.log(`fetching matches for lost-ID: ${lostItemId}`);
+
+      const lostItem = await getItemById(lostItemId);
+      if (!lostItem) {
+          return res.status(404).json({ message: "report not found" });
+      }
+
+      const cleanedDescription = cleanUpDesc(lostItem.description);
+      const matches = await findSimilarItems(JSON.parse(lostItem.embedding), cleanedDescription);
+
+      res.status(200).json({ matches: matches });
+  } catch (error) {
+      console.error("Error fetching matches:", error.message);
+      res.status(500).json({ message: "An error occurred while fetching matches." });
   }
 };
 
@@ -132,11 +150,11 @@ export const startClaimProcess = async (req, res) => {
 
 export const verifyClaim = async (req, res) => {
   try {
-    const { foundItemId, claimantAnswer, claimantEmail } = req.body;
+    const { foundItemId, lostItemId, claimantAnswer } = req.body;
     console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
 
     const foundItem = await getItemById(foundItemId);
-    const lostItem = await getLatestLostItem();
+    const lostItem = await getItemById(lostItemId);
 
     if (!foundItem || !lostItem) {
       return res.status(404).json({ message: "Required item reports not found." });

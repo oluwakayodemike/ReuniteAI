@@ -39,6 +39,10 @@ export const createItem = async (itemData) => {
 
     await connection.execute(sql, params);
     console.log("item saved succesfully");
+
+    const [newItem] = await connection.execute("SELECT * FROM items ORDER BY id DESC LIMIT 1;")
+    return newItem;
+    
   } catch (err) {
     console.log("Error inserting data to TiDB")
     throw err;
@@ -103,18 +107,6 @@ export const getItemById = async (itemId) => {
   } catch (error) {
     console.error(`Error fetching item with id ${itemId}:`, error);
     throw new Error("Failed to fetch item from database");
-  }
-};
-
-export const getLatestLostItem = async () => {
-  const sql = "SELECT * FROM items WHERE status = 'lost' ORDER BY id DESC LIMIT 1;";
-  try {
-    const rows = await connection.execute(sql);
-    console.log("TiDB result:", rows);
-    return rows.length > 0 ? rows[0] : null;
-  } catch (error) {
-    console.error(`Error fetching latest lost item:`, error);
-    throw new Error("Failed to fetch latest lost item");
   }
 };
 
