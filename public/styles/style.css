@@ -10,6 +10,10 @@ body {
   min-height: 100vh;
 }
 
+.cl-internal-bkuiv1 {
+  background-color: transparent !important;
+}
+
 /* 
 .navbar {
   backdrop-filter: blur(8px);

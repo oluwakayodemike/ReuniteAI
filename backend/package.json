@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@tidbcloud/serverless": "^0.2.0",
     "axios": "^1.11.0",
     "cloudinary": "^2.7.0",

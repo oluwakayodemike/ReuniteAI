@@ -25,6 +25,11 @@ const cleanUpDesc = (text) => {
 
 export const reportItem = async (req, res) => {
   try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+
     const { status, description, university, customLocation, lat, lng, date, verification_question, verification_answer } = req.body;
     const imageBuffer = req.file.buffer;
 
@@ -42,8 +47,9 @@ export const reportItem = async (req, res) => {
     });
 
     const embedding = bentoResponse.data[0];
-    console.log(`Saving '${status}' item to TiDB...`);
+    console.log(`Saving '${status}' item to TiDB for user: ${userId}...`);
     await createItem({
+      user_id: userId,
       status,
       description,
       university,
@@ -65,6 +71,10 @@ export const reportItem = async (req, res) => {
 
 export const searchItems = async (req, res) => {
   try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
     const { description, university, customLocation, lat, lng, date } = req.body;
     const imageBuffer = req.file.buffer;
 
@@ -83,6 +93,7 @@ export const searchItems = async (req, res) => {
     console.log("successfully got embed...");
 
     const newLostItem = await createItem({
+      user_id: userId,
       status: "lost",
       description,
       university,
