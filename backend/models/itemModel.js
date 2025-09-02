@@ -2,7 +2,7 @@ import { connect } from '@tidbcloud/serverless';
 import fetch from 'node-fetch';
 import https from 'https';
 
-const SIMILARITY_THRESHOLD = 0.25;
+const SIMILARITY_THRESHOLD = 0.20;
 
 const agent = new https.Agent({
   rejectUnauthorized: false,
@@ -41,9 +41,10 @@ export const createItem = async (itemData) => {
     await connection.execute(sql, params);
     console.log("item saved succesfully");
 
-    const [newItem] = await connection.execute("SELECT * FROM items ORDER BY id DESC LIMIT 1;")
-    return newItem;
-    
+    const [{ id }] = await connection.execute("SELECT LAST_INSERT_ID() AS id;");
+
+    const [newItem] = await connection.execute("SELECT * FROM items WHERE id = ?;", [id]);
+  return newItem;
   } catch (err) {
     console.log("Error inserting data to TiDB")
     throw err;
