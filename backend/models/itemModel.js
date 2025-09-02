@@ -95,6 +95,79 @@ export const findSimilarItems = async (embedding, description) => {
   return rankedMatches;
 };
 
+export const findSimilarLostItems = async (embedding, description, cleanUpDesc) => {
+  const cleanedDescription = cleanUpDesc(description);
+  if (!cleanedDescription) {
+    console.log("No description provided for FTS; skipping pre-filter.");
+    return [];
+  }
+
+  const ftsQuery = cleanedDescription.split(/\s+/).map(word => `+${word}`).join(' ');
+
+  const textSearchQuery = `
+    SELECT id, user_id
+    FROM items
+    WHERE status = 'lost' AND fts_match_word(?, description);
+  `;
+
+  const textMatches = await connection.execute(textSearchQuery, [ftsQuery]);
+
+  if (!textMatches || textMatches.length === 0) {
+    console.log("No text matches found for lost items.");
+    return [];
+  }
+  const candidateIDs = textMatches.map(row => row.id);
+  console.log(`fts matching lost IDs: [${candidateIDs.join(', ')}]`);
+
+  const placeholders = candidateIDs.map(() => '?').join(',');
+  const vectorSearchQuery = `
+    SELECT
+      id,
+      user_id,
+      description,
+      location,
+      item_date,
+      image_url,
+      vec_cosine_distance(embedding, ?) AS distance
+    FROM items
+    WHERE id IN (${placeholders})
+    ORDER BY distance
+    LIMIT 5;
+  `;
+
+  const vectorMatches = await connection.execute(vectorSearchQuery, [JSON.stringify(embedding), ...candidateIDs]);
+
+  const rankedMatches = vectorMatches.filter(item => item.distance < SIMILARITY_THRESHOLD);
+  return rankedMatches;
+};
+
+export const createNotification = async ({ user_id, message, lost_item_id, found_item_id }) => {
+  const sql = `
+    INSERT INTO notifications (user_id, message, lost_item_id, found_item_id)
+    VALUES (?, ?, ?, ?);
+  `;
+  await connection.execute(sql, [user_id, message, lost_item_id, found_item_id]);
+  console.log(`notification created for user ${user_id} regarding lost ID ${lost_item_id}`);
+};
+
+export const getUserNotifications = async (userId) => {
+  const sql = `
+    SELECT id, message, is_read, created_at, lost_item_id, found_item_id
+    FROM notifications
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 20;
+  `;
+  
+  try {
+    const notifications = await connection.execute(sql, [userId]);
+    return notifications;
+  } catch (error) {
+    console.error("Error fetching notifications from DB:", error);
+    throw error;
+  }
+};
+
 export const getItemById = async (itemId) => {
   const sql = "SELECT * FROM items WHERE id = ?";
   try {
