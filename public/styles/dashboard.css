@@ -155,6 +155,7 @@ body::after {
   font-size: 30px;
   font-weight: 700;
   color: var(--text-primary);
+  margin-bottom: 5px;
 }
 .dashboard-main .dashboard-header p {
   color: var(--text-secondary);
