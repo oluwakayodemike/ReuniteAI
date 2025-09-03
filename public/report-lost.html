@@ -28,29 +28,43 @@
 </head>
 
 <body>
-  <header>
-    <nav class="navbar">
-      <div class="nav-section nav-left">
-        <div class="logo">
-          <a href="./index.html">ReuniteAI</a>
+    <header>
+      <nav class="navbar">
+        <div class="nav-section nav-left">
+          <div class="logo">
+            <a href="./index.html">ReuniteAI</a>
+          </div>
         </div>
-      </div>
-      <div class="nav-section nav-center">
-        <a href="#">How It Works</a>
-        <a href="#">About</a>
-        <a href="#">Check Report Status</a>
-      </div>
-      <div id="signed-out-nav" class="nav-section nav-right" style="display: none;">
-        <a href="#" id="login-button" class="nav-auth">Log in</a>
-        <a href="#" id="signup-button" class="nav-auth outlined">Sign up</a>
-      </div>
+        <div class="nav-section nav-center">
+          <a href="#">How It Works</a>
+          <a href="#">About</a>
+          <a href="#">Check Report Status</a>
+        </div>
+        
+        <div id="signed-out-nav" class="nav-section nav-right" style="display: none;">
+          <a href="#" id="login-button" class="nav-auth">Log in</a>
+          <a href="#" id="signup-button" class="nav-auth outlined">Sign up</a>
+        </div>
 
-      <div id="signed-in-nav" class="nav-section nav-right" style="display: none; align-items: center; gap: 16px;">
-        <a href="./dashboard.html" class="nav-auth outlined">My Dashboard</a>
-        <div id="user-button"></div>
-      </div>
-    </nav>
-  </header>
+        <div id="signed-in-nav" class="nav-section nav-right">
+          <div class="notification-wrapper">
+            <i class="fa-regular fa-bell notification-icon"></i>
+            <span id="notification-badge" class="notification-badge">0</span>
+            <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+              <div class="notif-header">
+                <h3>Notifications</h3>
+              </div>
+              
+              <ul id="notification-list" class="notif-body">
+                </ul>
+            </div>
+          </div>
+          <a href="./dashboard.html" class="nav-auth outlined">My Dashboard</a>
+          <div id="user-button"></div>
+        </div>
+
+      </nav>
+    </header>
 
   <main>
     <section class="report-section">

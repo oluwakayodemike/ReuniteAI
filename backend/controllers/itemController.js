@@ -1,6 +1,6 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, getItemById, updateItemStatusToClaimed } from "../models/itemModel.js";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, updateItemStatusToClaimed } from "../models/itemModel.js";
 import { createClaim  } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
@@ -48,7 +48,7 @@ export const reportItem = async (req, res) => {
 
     const embedding = bentoResponse.data[0];
     console.log(`Saving '${status}' item to TiDB for user: ${userId}...`);
-    await createItem({
+    const newItem = await createItem({
       user_id: userId,
       status,
       description,
@@ -62,10 +62,35 @@ export const reportItem = async (req, res) => {
       verification_question,
       verification_answer
     });
+    
+    if (status === 'found') {
+      console.log(`NotifyAgent: Searching for matching lost items for found ID: ${newItem.id}`);
+      const potentialLostMatches = await findSimilarLostItems(JSON.parse(newItem.embedding), newItem.description, cleanUpDesc);
+      
+      for (const match of potentialLostMatches) {
+        const SIMILARITY_THRESHOLD = 0.20;
+
+        if (match.distance < SIMILARITY_THRESHOLD) {
+          const message = `A potential match has been found for your lost item: '${match.description}'. Check your matches!`;
+          await createNotification({
+            user_id: match.user_id,
+            message,
+            lost_item_id: match.id,
+            found_item_id: newItem.id
+          });
+        }
+      }
+      if (potentialLostMatches.length > 0) {
+        console.log(`NotifyAgent: Sent ${potentialLostMatches.length} notifications.`);
+      } else {
+        console.log(`NotifyAgent: No matching lost items found.`);
+      }
+    }
+
     res.status(200).json({ message: "Item reported and saved successfully!" });
   } catch (error) {
     console.error("Error:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    res.status(500).json({ message: "Error reporting item!" });
   }
 };
 
@@ -165,7 +190,8 @@ export const verifyClaim = async (req, res) => {
     console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
 
     const foundItem = await getItemById(foundItemId);
-    const lostItem = await getItemById(lostItemId);
+    const lostItem = await getItemById(lostItemId);x
+    const claimantEmail = req.auth.userEmail || 'claimant@reunite.ai';
 
     if (!foundItem || !lostItem) {
       return res.status(404).json({ message: "Required item reports not found." });
@@ -226,5 +252,43 @@ export const verifyClaim = async (req, res) => {
   } catch (error) {
     console.error("Error in verifyClaim:", error.response ? error.response.data : error.message);
     res.status(500).json({ message: "An error occurred during verification." });
+  }
+};
+
+export const getNotifications = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+
+    const notifications = await getUserNotifications(userId);
+
+    res.status(200).json({ notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error.message);
+    res.status(500).json({ message: "Error fetching notifications." });
+  }
+};
+
+export const markNotificationRead = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+    const { notificationId } = req.body;
+    if (!notificationId) {
+      return res.status(400).json({ message: "Notification ID is required." });
+    }
+
+    await markNotificationAsRead(notificationId, userId);
+    res.status(200).json({ message: "Notification marked as read." });
+  } catch (error) {
+    console.error("Error in markNotificationRead:", error.message);
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: "Notification not found." });
+    }
+    res.status(500).json({ message: "Error marking notification as read." });
   }
 };

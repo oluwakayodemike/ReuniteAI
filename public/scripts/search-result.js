@@ -1,8 +1,24 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", async () => {
+  const Clerk = window.Clerk;
+  try {
+    await Clerk.load();
+
+    if (!Clerk.user) {
+      window.location.href = './index_clerk.html';
+      return;
+    }
+
+    initializeSearchResults();
+
+  } catch (err) {
+    console.error("Clerk failed to load on search results page:", err);
+  }
+});
+
+
+function initializeSearchResults() {
   const resultsContainer = document.getElementById("results-container");
   const resultsSubtitle = document.querySelector(".results-subtitle");
-
-
   const verificationModal = document.getElementById("verification-modal");
   const verificationContent = document.getElementById("verification-content");
   const closeVerificationModal = document.querySelector(".close-verification-modal");
@@ -14,18 +30,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchAndRenderMatches(id) {
     try {
-        const response = await fetch(`http://localhost:3001/api/items/matches/${id}`);
-        if (!response.ok) {
-            throw new Error('Could not fetch matches.');
+      const token = await window.Clerk.session.getToken();
+      const response = await fetch(`http://localhost:3001/api/items/matches/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-        const data = await response.json();
-        renderSearchResults(data.matches);
+      });
+
+      if (!response.ok) {
+        throw new Error('Could not fetch matches.');
+      }
+      const data = await response.json();
+      renderSearchResults(data.matches);
     } catch (error) {
-        console.error("Error fetching matches:", error);
-        resultsContainer.innerHTML = '<p class="no-matches-message">We couldn’t find any items that match currently. We will notify you if anything comes up.</p>';
+      console.error("Error fetching matches:", error);
+      resultsContainer.innerHTML = '<p class="no-matches-message">We couldn’t find any items that match currently. We will notify you if anything comes up.</p>';
     }
   }
-  
+
   const renderSearchResults = (matches) => {
     resultsContainer.innerHTML = "";
     if (!matches || matches.length === 0) {
@@ -68,11 +90,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function startClaimProcess(foundItemId) {
     try {
+      const token = await window.Clerk.session.getToken();
       const response = await fetch(
-        "http://localhost:3001/api/items/claim/start",
-        {
+        "http://localhost:3001/api/items/claim/start", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ foundItemId: foundItemId }),
         }
       );
@@ -80,7 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Server error when starting claim process.");
 
       const data = await response.json();
-
       createVerificationModal(data.question);
     } catch (error) {
       console.error("Error starting claim process:", error);
@@ -129,14 +153,16 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/items/claim/verify",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+        const token = await window.Clerk.session.getToken();
+        const response = await fetch(
+            "http://localhost:3001/api/items/claim/verify", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload),
+        });
       if (!response.ok) throw new Error("Verification request failed.");
       const result = await response.json();
       displayVerificationResult(result);
@@ -216,13 +242,12 @@ document.addEventListener("DOMContentLoaded", () => {
       verificationModal.style.display = "none";
     }
   };
-
+  
   if (lostItemId) {
     fetchAndRenderMatches(lostItemId);
   } else {
-    // if no ID, then show the "no search" message.
     resultsSubtitle.textContent = "There are no results to display.";
     resultsContainer.innerHTML =
       '<p class="no-matches-message">No search was performed. Please go back and report a lost item first.</p>';
   }
-});
+}

@@ -2,7 +2,7 @@ import { connect } from '@tidbcloud/serverless';
 import fetch from 'node-fetch';
 import https from 'https';
 
-const SIMILARITY_THRESHOLD = 0.25;
+const SIMILARITY_THRESHOLD = 0.20;
 
 const agent = new https.Agent({
   rejectUnauthorized: false,
@@ -41,9 +41,10 @@ export const createItem = async (itemData) => {
     await connection.execute(sql, params);
     console.log("item saved succesfully");
 
-    const [newItem] = await connection.execute("SELECT * FROM items ORDER BY id DESC LIMIT 1;")
-    return newItem;
-    
+    const [{ id }] = await connection.execute("SELECT LAST_INSERT_ID() AS id;");
+
+    const [newItem] = await connection.execute("SELECT * FROM items WHERE id = ?;", [id]);
+  return newItem;
   } catch (err) {
     console.log("Error inserting data to TiDB")
     throw err;
@@ -92,6 +93,94 @@ export const findSimilarItems = async (embedding, description) => {
     .filter(item => item.distance < SIMILARITY_THRESHOLD);
 
   return rankedMatches;
+};
+
+export const findSimilarLostItems = async (embedding, description, cleanUpDesc) => {
+  const cleanedDescription = cleanUpDesc(description);
+  if (!cleanedDescription) {
+    console.log("No description provided for FTS; skipping pre-filter.");
+    return [];
+  }
+
+  const ftsQuery = cleanedDescription.split(/\s+/).map(word => `+${word}`).join(' ');
+
+  const textSearchQuery = `
+    SELECT id, user_id
+    FROM items
+    WHERE status = 'lost' AND fts_match_word(?, description);
+  `;
+
+  const textMatches = await connection.execute(textSearchQuery, [ftsQuery]);
+
+  if (!textMatches || textMatches.length === 0) {
+    console.log("No text matches found for lost items.");
+    return [];
+  }
+  const candidateIDs = textMatches.map(row => row.id);
+  console.log(`fts matching lost IDs: [${candidateIDs.join(', ')}]`);
+
+  const placeholders = candidateIDs.map(() => '?').join(',');
+  const vectorSearchQuery = `
+    SELECT
+      id,
+      user_id,
+      description,
+      location,
+      item_date,
+      image_url,
+      vec_cosine_distance(embedding, ?) AS distance
+    FROM items
+    WHERE id IN (${placeholders})
+    ORDER BY distance
+    LIMIT 5;
+  `;
+
+  const vectorMatches = await connection.execute(vectorSearchQuery, [JSON.stringify(embedding), ...candidateIDs]);
+
+  const rankedMatches = vectorMatches.filter(item => item.distance < SIMILARITY_THRESHOLD);
+  return rankedMatches;
+};
+
+export const createNotification = async ({ user_id, message, lost_item_id, found_item_id }) => {
+  const sql = `
+    INSERT INTO notifications (user_id, message, lost_item_id, found_item_id)
+    VALUES (?, ?, ?, ?);
+  `;
+  await connection.execute(sql, [user_id, message, lost_item_id, found_item_id]);
+  console.log(`notification created for user ${user_id} regarding lost ID ${lost_item_id}`);
+};
+
+export const getUserNotifications = async (userId) => {
+  const sql = `
+    SELECT id, message, is_read, created_at, lost_item_id, found_item_id
+    FROM notifications
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 20;
+  `;
+  
+  try {
+    const notifications = await connection.execute(sql, [userId]);
+    return notifications;
+  } catch (error) {
+    console.error("Error fetching notifications from DB:", error);
+    throw error;
+  }
+};
+
+export const markNotificationAsRead = async (notificationId, userId) => {
+  const sql = 'UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?';
+  try {
+    const result = await connection.execute(sql, [notificationId, userId]);
+    if (result.affectedRows === 0) {
+      throw new Error('Notification not found or not owned by user');
+    }
+    console.log(`Notification ${notificationId} marked as read for user ${userId}.`);
+    return result;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    throw error;
+  }
 };
 
 export const getItemById = async (itemId) => {
