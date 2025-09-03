@@ -14,13 +14,22 @@
       rel="stylesheet"
     />
     <script src="https://kit.fontawesome.com/cdfe75faaa.js" crossorigin="anonymous"></script>
+    <link rel="preload" as="script" href="https://witty-mink-37.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous">
+    <script
+      async
+      crossorigin="anonymous"
+      data-clerk-publishable-key="pk_test_d2l0dHktbWluay0zNy5jbGVyay5hY2NvdW50cy5kZXYk"
+      src="https://witty-mink-37.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+      type="text/javascript"
+    ></script>
+    <script src="../scripts/auth.js" defer></script>
   </head>
   <body>
     <header>
         <nav class="navbar">
             <div class="nav-section nav-left">
               <div class="logo">
-                <a href="./index.html">ReuniteAI</a>
+                <a href="../index.html">ReuniteAI</a>
               </div>
             </div>
             <div class="nav-section nav-center">
@@ -62,8 +71,8 @@
                     <a href="./dashboard.settings.html" class="sidebar-link"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
                 </nav>
                 <div class="sidebar-actions">
-                    <a href="#" class="action-btn primary"><i class="fa-solid fa-plus"></i> Report Lost Item</a>
-                    <a href="#" class="action-btn secondary">Report Found Item</a>
+                    <a href="../report-lost.html" class="action-btn primary"><i class="fa-solid fa-plus"></i> Report Lost Item</a>
+                    <a href="../report-found.html" class="action-btn secondary">Report Found Item</a>
                 </div>
             </aside>
 
@@ -122,7 +131,6 @@
                 </div>
             </div>
 
-            
             <aside class="dashboard-aside">
                 <h3>Recent Activity</h3>
                 <ul class="activity-list" id="activity-list">
