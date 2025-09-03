@@ -1,6 +1,6 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, getItemById, updateItemStatusToClaimed } from "../models/itemModel.js";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, updateItemStatusToClaimed } from "../models/itemModel.js";
 import { createClaim  } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
@@ -261,12 +261,34 @@ export const getNotifications = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated." });
     }
-    
+
     const notifications = await getUserNotifications(userId);
 
     res.status(200).json({ notifications });
   } catch (error) {
     console.error("Error fetching notifications:", error.message);
     res.status(500).json({ message: "Error fetching notifications." });
+  }
+};
+
+export const markNotificationRead = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+    const { notificationId } = req.body;
+    if (!notificationId) {
+      return res.status(400).json({ message: "Notification ID is required." });
+    }
+
+    await markNotificationAsRead(notificationId, userId);
+    res.status(200).json({ message: "Notification marked as read." });
+  } catch (error) {
+    console.error("Error in markNotificationRead:", error.message);
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: "Notification not found." });
+    }
+    res.status(500).json({ message: "Error marking notification as read." });
   }
 };

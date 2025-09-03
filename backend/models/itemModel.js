@@ -168,6 +168,21 @@ export const getUserNotifications = async (userId) => {
   }
 };
 
+export const markNotificationAsRead = async (notificationId, userId) => {
+  const sql = 'UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?';
+  try {
+    const result = await connection.execute(sql, [notificationId, userId]);
+    if (result.affectedRows === 0) {
+      throw new Error('Notification not found or not owned by user');
+    }
+    console.log(`Notification ${notificationId} marked as read for user ${userId}.`);
+    return result;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    throw error;
+  }
+};
+
 export const getItemById = async (itemId) => {
   const sql = "SELECT * FROM items WHERE id = ?";
   try {
