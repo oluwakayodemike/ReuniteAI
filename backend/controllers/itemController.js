@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, updateItemStatusToClaimed } from "../models/itemModel.js";
-import { createClaim  } from "../models/claimModel.js";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, updateItemStatusToClaimed, getUserItems, countUserStats, getRecentActivity } from "../models/itemModel.js";
+import { createClaim, approveClaimTransaction } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
 const BENTO_URL = process.env.CLIP_API_URL;
@@ -190,7 +190,7 @@ export const verifyClaim = async (req, res) => {
     console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
 
     const foundItem = await getItemById(foundItemId);
-    const lostItem = await getItemById(lostItemId);x
+    const lostItem = await getItemById(lostItemId);
     const claimantEmail = req.auth.userEmail || 'claimant@reunite.ai';
 
     if (!foundItem || !lostItem) {
@@ -236,18 +236,96 @@ export const verifyClaim = async (req, res) => {
     if (decision === 'yes') {
       const pickupCode = `R-AI-${Math.floor(1000 + Math.random() * 9000)}`;
       
-      await createClaim({
+      try {
+        const result = await approveClaimTransaction({
           lost_item_id: lostItem.id,
           found_item_id: foundItem.id,
-          claimant_email: claimantEmail || 'claimant@reunite.ai',
+          claimant_email: claimantEmail,
           pickup_code: pickupCode
-      });
-    
-      await updateItemStatusToClaimed(foundItem.id);
+        });
 
-      res.status(200).json({ verified: true, pickupCode: pickupCode });
+        console.log(`Claim approved and items updated (claimId=${result.claim?.id})`);
+
+        try {
+          const ownerUserId = lostItem.user_id;
+          const finderUserId = foundItem.user_id;
+          const itemDesc = (lostItem.description || foundItem.description || "an item").slice(0, 120);
+
+          // owners notification
+          if (ownerUserId) {
+            const ownerMsg = `Good news: your lost item "${itemDesc}" has been reunited. Pickup code: ${pickupCode}.`;
+            await createNotification({
+              user_id: ownerUserId,
+              message: ownerMsg,
+              lost_item_id: lostItem.id,
+              found_item_id: foundItem.id
+            });
+            console.log(`Notification created for owner (user=${ownerUserId})`);
+          }
+
+          // finders notification
+          if (finderUserId && finderUserId !== ownerUserId) {
+            const finderMsg = `Your found item "${itemDesc}" has been claimed and approved. Pickup code: ${pickupCode}.`;
+            await createNotification({
+              user_id: finderUserId,
+              message: finderMsg,
+              lost_item_id: lostItem.id,
+              found_item_id: foundItem.id
+            });
+            console.log(`notification created for finder (user=${finderUserId})`);
+          }
+        } catch (notifErr) {
+          console.error("failed to create notifications after approval:", notifErr);
+        }
+
+        return res.status(200).json({
+          verified: true,
+          pickupCode,
+          claimId: result.claim?.id || null,
+          found: result.found || null,
+          lost: result.lost || null
+        });
+      } catch (txErr) {
+        console.error("Failed to approve claim transaction:", txErr);
+        return res.status(500).json({ message: "Failed to finalize claim." });
+      }
     } else {
-      res.status(200).json({ verified: false, message: "Your claim has been submitted for manual review." });
+      // needs manual review
+      try {
+        const pending = await createClaim({
+          lost_item_id: lostItem.id,
+          found_item_id: foundItem.id,
+          claimant_email: claimantEmail,
+          pickup_code: null,
+          status: 'PENDING'
+        });
+        console.log(`claim recorded as PENDING (id=${pending?.id})`);
+
+        try {
+          const finderUserId = foundItem.user_id;
+          if (finderUserId) {
+            const msg = `A claim has been submitted for the item "${foundItem.description?.slice(0,120) || 'an item'}" and is awaiting manual review.`;
+            await createNotification({
+              user_id: finderUserId,
+              message: msg,
+              lost_item_id: lostItem.id,
+              found_item_id: foundItem.id
+            });
+            console.log(`pending notification sent to finder (user=${finderUserId})`);
+          }
+        } catch (notifErrII) {
+          console.error("Failed to create pending notification:", notifErrII);
+        }
+
+        return res.status(200).json({
+          verified: false,
+          message: "your claim has been submitted for manual review.",
+          claimId: pending?.id || null
+        });
+      } catch (createErr) {
+        console.error("Failed to create pending claim:", createErr);
+        return res.status(500).json({ message: "Failed to record claim for manual review." });
+      }
     }
   } catch (error) {
     console.error("Error in verifyClaim:", error.response ? error.response.data : error.message);
@@ -290,5 +368,27 @@ export const markNotificationRead = async (req, res) => {
       return res.status(404).json({ message: "Notification not found." });
     }
     res.status(500).json({ message: "Error marking notification as read." });
+  }
+};
+
+export const getDashboardData = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+
+    const stats = await countUserStats(userId);
+    const recentReports = await getUserItems(userId, 5);
+    const recentActivity = await getRecentActivity(userId, 3);
+
+    res.status(200).json({
+      stats,
+      recentReports,
+      recentActivity
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error.message);
+    res.status(500).json({ message: "Error fetching dashboard data." });
   }
 };

@@ -23,6 +23,21 @@
   --status-pending-text: #9a3412;
   --status-resolved-bg: #d1fae5;
   --status-resolved-text: #065f46;
+
+  --activity-matches-bg: #dbeafe;     /* light blue */
+  --activity-matches-text: #1e40af;   /* dark blue */
+  
+  --activity-claim-bg: #ffedd5;       /* light orange */
+  --activity-claim-text: #9a3412;     /* deep orange */
+
+  --activity-reunited-bg: #d1fae5;    /* light green */
+  --activity-reunited-text: #065f46;  /* deep green */
+
+  --activity-filed-bg: #f3f4f6;       /* light gray */
+  --activity-filed-text: #374151;     /* dark gray */
+
+  --activity-default-bg: #f9fafb;     /* subtle gray */
+  --activity-default-text: #6b7280;   /* medium gray */
 }
 
 body {
@@ -354,16 +369,24 @@ body::after {
   font-size: 16px;
 }
 .activity-icon.matches {
-  background-color: var(--status-matches-bg);
-  color: var(--status-matches-text);
+  background-color: var(--activity-matches-bg);
+  color: var(--activity-matches-text);
 }
-.activity-icon.resolved {
-  background-color: var(--status-resolved-bg);
-  color: var(--status-resolved-text);
+.activity-icon.claim {
+  background-color: var(--activity-claim-bg);
+  color: var(--activity-claim-text);
 }
-.activity-icon.pending {
-  background-color: var(--status-pending-bg);
-  color: var(--status-pending-text);
+.activity-icon.reunited {
+  background-color: var(--activity-reunited-bg);
+  color: var(--activity-reunited-text);
+}
+.activity-icon.filed {
+  background-color: var(--activity-filed-bg);
+  color: var(--activity-filed-text);
+}
+.activity-icon.default {
+  background-color: var(--activity-default-bg);
+  color: var(--activity-default-text);
 }
 .activity-details p {
   margin: 0;

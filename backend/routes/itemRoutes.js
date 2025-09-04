@@ -1,6 +1,6 @@
 import express from "express";
 import multer from 'multer';
-import { reportItem, searchItems, getMatchesForLostItem, startClaimProcess, verifyClaim, getNotifications, markNotificationRead } from '../controllers/itemController.js';
+import { reportItem, searchItems, getMatchesForLostItem, startClaimProcess, verifyClaim, getNotifications, markNotificationRead, getDashboardData } from '../controllers/itemController.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -12,5 +12,6 @@ router.post('/items/claim/start', startClaimProcess);
 router.post('/items/claim/verify', verifyClaim);
 router.get('/notifications', getNotifications);
 router.post('/notifications/mark-read', markNotificationRead);
+router.get('/dashboard', getDashboardData);
 
 export default router;
