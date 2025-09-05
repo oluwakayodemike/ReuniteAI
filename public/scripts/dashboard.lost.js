@@ -25,6 +25,9 @@ async function initializeLostReports(Clerk) {
   const searchInput = document.querySelector(".search-input");
   const statusFilter = document.getElementById("status-filter");
   const pagination = document.getElementById("pagination");
+  const activityList = document.getElementById("activity-list");
+  const notifBadge = document.getElementById("notification-badge");
+  const notifList = document.getElementById("notification-list");
 
   let reports = [];
   let currentPage = 1;
@@ -45,9 +48,7 @@ async function initializeLostReports(Clerk) {
   function shortenId(id) {
     if (!id) return "";
     const str = String(id);
-    return str.length > 12
-        ? `${str.slice(0, 5)}...${str.slice(-4)}`
-        : str;
+    return str.length > 12 ? `${str.slice(0, 5)}...${str.slice(-4)}` : str;
   }
 
   async function fetchLostReports() {
@@ -65,6 +66,35 @@ async function initializeLostReports(Clerk) {
     } catch (err) {
       console.error("Error fetching lost reports:", err);
       return [];
+    }
+  }
+
+  async function fetchActivityAndNotifications() {
+    try {
+      const token = await Clerk.session.getToken();
+      const dashRes = await fetch("http://localhost:3001/api/dashboard", {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const dashJson = dashRes.ok ? await dashRes.json() : {};
+      const recentActivity = dashJson.recentActivity || [];
+
+      let notifications = [];
+      try {
+        const nres = await fetch("http://localhost:3001/api/notifications", {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        if (nres.ok) {
+          const njson = await nres.json();
+          notifications = njson.notifications || [];
+        }
+      } catch (nerr) {
+        console.warn("Failed to fetch notifications:", nerr);
+      }
+
+      return { recentActivity, notifications };
+    } catch (err) {
+      console.error("Error fetching recent activity:", err);
+      return { recentActivity: [], notifications: [] };
     }
   }
 
@@ -87,19 +117,93 @@ async function initializeLostReports(Clerk) {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${escapeHtml(report.item_description)}</td>
+        <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(report.item_description)}</td>
         <td>${fmtDate(report.date_reported)}</td>
         <td>#${shortenId(report.report_id)}</td>
         <td><span class="status status-${statusClass}">${displayStatus}</span></td>
-        <td><a href="../report/${encodeURIComponent( report.report_id )}" class="action-btn-table">View Details</a></td>
+        <td><a href="../report/${encodeURIComponent(report.report_id)}" class="action-btn-table">View Details</a></td>
       `;
       tableBody.appendChild(row);
     });
   }
 
+  function renderActivity(list) {
+    if (!activityList) return;
+    activityList.innerHTML = "";
+
+    if (!list || list.length === 0) {
+      activityList.innerHTML = `<li class="no-activity">No recent activity.</li>`;
+      return;
+    }
+
+    list.forEach((activity) => {
+      const li = document.createElement("li");
+      const activityClass = escapeHtml(activity.activity_class || "");
+      const icon = escapeHtml(activity.icon || "fa-solid fa-info");
+      const details = escapeHtml(activity.details || "");
+      const timeAgo = escapeHtml(activity.time_ago || new Date(activity.created_at || "").toLocaleString());
+
+      li.innerHTML = `
+        <div class="activity-icon ${activityClass}"><i class="${icon}"></i></div>
+        <div class="activity-details">
+          <p>${details}</p>
+          <span>${timeAgo}</span>
+        </div>
+      `;
+      activityList.appendChild(li);
+    });
+  }
+
+  function renderNotificationsDropdown(notifications) {
+    if (!notifBadge || !notifList) return;
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    if (unreadCount > 0) {
+      notifBadge.classList.add("visible");
+      notifBadge.textContent = String(unreadCount);
+    } else {
+      notifBadge.classList.remove("visible");
+      notifBadge.textContent = "0";
+    }
+
+    notifList.innerHTML = "";
+    if (!notifications || notifications.length === 0) {
+      notifList.innerHTML = `<li class="no-notifs">No notifications</li>`;
+      return;
+    }
+
+    notifications.forEach(notif => {
+      const li = document.createElement("li");
+      li.className = "notification-item" + (!notif.is_read ? " unread" : "");
+      li.innerHTML = `
+        <div class="notif-avatar">${escapeHtml((notif.message || "").slice(0,1) || "•")}</div>
+        <div class="notif-content">
+          <div class="notif-text">${escapeHtml(notif.message || "")}</div>
+          <div class="notif-time">${escapeHtml(new Date(notif.created_at || "").toLocaleString())}</div>
+        </div>
+      `;
+      li.addEventListener("click", async () => {
+        try {
+          const clickToken = await Clerk.session.getToken();
+          await fetch("http://localhost:3001/api/notifications/mark-read", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${clickToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ notificationId: notif.id })
+          });
+          li.classList.remove("unread");
+          const cur = Math.max(0, parseInt(notifBadge.textContent || "0") - 1);
+          notifBadge.textContent = cur;
+        } catch (err) {
+          console.error("Failed to mark notification read:", err);
+        }
+      });
+      notifList.appendChild(li);
+    });
+  }
+
   function applyFilters() {
     let filtered = [...reports];
-    const searchText = searchInput.value.toLowerCase();
+    const searchText = (searchInput.value || "").toLowerCase();
     const status = statusFilter.value;
 
     if (searchText) {
@@ -109,7 +213,15 @@ async function initializeLostReports(Clerk) {
     }
 
     if (status !== "all") {
-      filtered = filtered.filter((r) => r.status === status);
+      filtered = filtered.filter((r) => {
+        const cls = String(r.status_class || "").toLowerCase();
+        const st = String(r.status || "").toLowerCase();
+        if (status === "searching") return cls === "searching" || st === "lost";
+        if (status === "matches-found") return cls === "matches" || st === "found";
+        if (status === "claim-pending") return cls === "pending" || st === "claimed";
+        if (status === "resolved") return cls === "resolved" || st === "reunited" || st === "claimed";
+        return cls === status || st === status;
+      });
     }
 
     return filtered;
@@ -123,14 +235,12 @@ async function initializeLostReports(Clerk) {
   function renderPagination(totalItems) {
     pagination.innerHTML = "";
     const totalPages = Math.ceil(totalItems / pageSize);
-
     if (totalPages <= 1) return;
 
     const makeLink = (page, label = page) => {
       const link = document.createElement("a");
       link.href = "#";
-      link.className =
-        "pagination-link" + (page === currentPage ? " active" : "");
+      link.className = "pagination-link" + (page === currentPage ? " active" : "");
       link.textContent = label;
       link.addEventListener("click", (e) => {
         e.preventDefault();
@@ -140,11 +250,9 @@ async function initializeLostReports(Clerk) {
       return link;
     };
 
-    if (currentPage > 1)
-      pagination.appendChild(makeLink(currentPage - 1, "Previous"));
+    if (currentPage > 1) pagination.appendChild(makeLink(currentPage - 1, "Previous"));
     for (let i = 1; i <= totalPages; i++) pagination.appendChild(makeLink(i));
-    if (currentPage < totalPages)
-      pagination.appendChild(makeLink(currentPage + 1, "Next"));
+    if (currentPage < totalPages) pagination.appendChild(makeLink(currentPage + 1, "Next"));
   }
 
   function updateUI() {
@@ -157,8 +265,18 @@ async function initializeLostReports(Clerk) {
   reports = await fetchLostReports();
   updateUI();
 
-  searchInput.addEventListener("input", updateUI);
-  statusFilter.addEventListener("change", updateUI);
+  const { recentActivity, notifications } = await fetchActivityAndNotifications();
+  renderActivity(recentActivity);
+  renderNotificationsDropdown(notifications);
+
+  searchInput.addEventListener("input", () => {
+    currentPage = 1;
+    updateUI();
+  });
+  statusFilter.addEventListener("change", () => {
+    currentPage = 1;
+    updateUI();
+  });
 }
 
 function escapeHtml(str) {
