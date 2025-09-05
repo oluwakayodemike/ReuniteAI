@@ -24,20 +24,20 @@
   --status-resolved-bg: #d1fae5;
   --status-resolved-text: #065f46;
 
-  --activity-matches-bg: #dbeafe;     /* light blue */
-  --activity-matches-text: #1e40af;   /* dark blue */
+  --activity-matches-bg: #dbeafe;
+  --activity-matches-text: #1e40af;
   
-  --activity-claim-bg: #ffedd5;       /* light orange */
-  --activity-claim-text: #9a3412;     /* deep orange */
+  --activity-claim-bg: #ffedd5;
+  --activity-claim-text: #9a3412;
 
-  --activity-reunited-bg: #d1fae5;    /* light green */
-  --activity-reunited-text: #065f46;  /* deep green */
+  --activity-reunited-bg: #d1fae5;
+  --activity-reunited-text: #065f46;
 
-  --activity-filed-bg: #f3f4f6;       /* light gray */
-  --activity-filed-text: #374151;     /* dark gray */
+  --activity-filed-bg: #f3f4f6;
+  --activity-filed-text: #374151;
 
-  --activity-default-bg: #f9fafb;     /* subtle gray */
-  --activity-default-text: #6b7280;   /* medium gray */
+  --activity-default-bg: #f9fafb;
+  --activity-default-text: #6b7280;
 }
 
 body {

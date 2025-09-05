@@ -1,3 +1,4 @@
 node_modules/
 test/
 .env
+public/dashboard/dashboard.settings.html

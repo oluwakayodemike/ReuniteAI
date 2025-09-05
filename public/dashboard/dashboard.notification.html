@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ReuniteAI - My Lost Reports</title>
+    <title>ReuniteAI - Notifications</title>
     <link rel="stylesheet" href="../styles/style.css" />
     <link rel="stylesheet" href="../styles/dashboard.css" />
     <link rel="stylesheet" href="../styles/pages.css" />
@@ -14,23 +14,13 @@
       rel="stylesheet"
     />
     <script src="https://kit.fontawesome.com/cdfe75faaa.js" crossorigin="anonymous"></script>
-    <link rel="preload" as="script" href="https://witty-mink-37.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js" crossorigin="anonymous">
-    <script
-      async
-      crossorigin="anonymous"
-      data-clerk-publishable-key="pk_test_d2l0dHktbWluay0zNy5jbGVyay5hY2NvdW50cy5kZXYk"
-      src="https://witty-mink-37.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
-      type="text/javascript"
-    ></script>
-    <script src="../scripts/auth.js" defer></script>
-    <script src="../scripts/dashboard.lost.js" defer></script>
   </head>
   <body>
     <header>
         <nav class="navbar">
             <div class="nav-section nav-left">
               <div class="logo">
-                <a href="../index.html">ReuniteAI</a>
+                <a href="./index.html">ReuniteAI</a>
               </div>
             </div>
             <div class="nav-section nav-center">
@@ -71,61 +61,56 @@
                     <a href="./dashboard.notification.html" class="sidebar-link"><i class="fa-solid fa-bell"></i><span>Notifications</span></a>
                     <a href="./dashboard.settings.html" class="sidebar-link"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
                 </nav>
-                
                 <div class="sidebar-actions">
-                    <a href="../report-lost.html" class="action-btn primary"><i class="fa-solid fa-plus"></i> Report Lost Item</a>
-                    <a href="../report-found.html" class="action-btn secondary">Report Found Item</a>
+                    <a href="#" class="action-btn primary"><i class="fa-solid fa-plus"></i> Report Lost Item</a>
+                    <a href="#" class="action-btn secondary">Report Found Item</a>
                 </div>
             </aside>
 
             <div class="dashboard-main">
                 <div class="dashboard-header">
-                    <h1>My Lost Reports</h1>
-                    <p>Track and manage all the items you have reported as lost.</p>
-                </div>
-
-                <div class="page-card filter-card">
-                    <input type="text" class="search-input" placeholder="Search by item name...">
-                    <div class="filter-group">
-                        <label for="status-filter">Status:</label>
-                        <select id="status-filter" class="filter-select">
-                            <option value="all">All</option>
-                            <option value="searching">Searching</option>
-                            <option value="matches-found">Matches Found</option>
-                            <option value="claim-pending">Claim Pending</option>
-                            <option value="resolved">Resolved</option>
-                        </select>
-                    </div>
+                    <h1>Notifications</h1>
+                    <p>Stay updated with all activities related to your reports.</p>
                 </div>
 
                 <div class="page-card">
-                <div class="table-container">
-                    <table>
-                    <thead>
-                        <tr>
-                        <th>Item Description</th>
-                        <th>Date Reported</th>
-                        <th>Report ID</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reports-table-body">
-                        <tr>
-                        <td colspan="5" style="text-align:center; color:var(--text-secondary)">
-                            Loading reports...
-                        </td>
-                        </tr>
-                    </tbody>
-                    </table>
-                </div>
+                    <div class="notifications-header">
+                        <div class="notification-tabs">
+                            <button class="notification-tab active">All</button>
+                            <button class="notification-tab">Unread</button>
+                        </div>
+                        <button class="action-btn-secondary">Mark All as Read</button>
+                    </div>
 
-                <div class="pagination-container" id="pagination">
-                  <!-- dynamico -->
-                </div>
+                    <ul class="notification-list">
+                        <li class="notification-item unread">
+                            <div class="activity-icon matches"><i class="fa-solid fa-link"></i></div>
+                            <div class="notification-details">
+                                <p>New potential match for your <strong>Black Leather Wallet</strong>.</p>
+                                <span>2 hours ago</span>
+                            </div>
+                            <a href="#" class="item-action-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                        </li>
+                        <li class="notification-item read">
+                            <div class="activity-icon resolved"><i class="fa-solid fa-check"></i></div>
+                             <div class="notification-details">
+                                <p>Your lost report for <strong>Blue Bottle</strong> has been successfully filed.</p>
+                                <span>1 day ago</span>
+                            </div>
+                            <a href="#" class="item-action-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                        </li>
+                         <li class="notification-item read">
+                            <div class="activity-icon pending"><i class="fa-solid fa-user-check"></i></div>
+                             <div class="notification-details">
+                                <p>A claim has been received for the <strong>Silver iPhone 14</strong> you found.</p>
+                                <span>3 days ago</span>
+                            </div>
+                            <a href="#" class="item-action-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                        </li>
+                    </ul>
                 </div>
             </div>
-            
+
             <aside class="dashboard-aside">
                 <h3>Recent Activity</h3>
                 <ul class="activity-list" id="activity-list">

@@ -1,10 +1,12 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, updateItemStatusToClaimed, getUserItems, countUserStats, getRecentActivity } from "../models/itemModel.js";
+import { Clerk } from "@clerk/clerk-sdk-node";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById } from "../models/itemModel.js";
 import { createClaim, approveClaimTransaction } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
 const BENTO_URL = process.env.CLIP_API_URL;
+const clerkClient = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const cleanUpDesc = (text) => {
   if (!text) return '';
@@ -251,9 +253,22 @@ export const verifyClaim = async (req, res) => {
           const finderUserId = foundItem.user_id;
           const itemDesc = (lostItem.description || foundItem.description || "an item").slice(0, 120);
 
+          let finderEmail = null;
+          try {
+            const finder = await clerkClient.users.getUser(foundItem.user_id);
+            finderEmail =
+              finder.emailAddresses?.[0]?.emailAddress || null;
+          } catch (err) {
+            console.error("Failed to fetch finder email from Clerk:", err);
+          }
+
           // owners notification
           if (ownerUserId) {
-            const ownerMsg = `Good news: your lost item "${itemDesc}" has been reunited. Pickup code: ${pickupCode}.`;
+            const ownerMsg = `Good news: your lost item "${itemDesc}" has been reunited. Pickup code: ${pickupCode}. ${
+              finderEmail
+                ? `Contact the finder at ${finderEmail} to arrange handoff.`
+                : "Contact the finder to arrange handoff."
+            }`;
             await createNotification({
               user_id: ownerUserId,
               message: ownerMsg,
@@ -265,7 +280,7 @@ export const verifyClaim = async (req, res) => {
 
           // finders notification
           if (finderUserId && finderUserId !== ownerUserId) {
-            const finderMsg = `Your found item "${itemDesc}" has been claimed and approved. Pickup code: ${pickupCode}.`;
+            const finderMsg = `Your found item "${itemDesc}" has been claimed and approved. Pickup code: ${pickupCode}. Await owner contact for handoff.`;
             await createNotification({
               user_id: finderUserId,
               message: finderMsg,
@@ -368,27 +383,5 @@ export const markNotificationRead = async (req, res) => {
       return res.status(404).json({ message: "Notification not found." });
     }
     res.status(500).json({ message: "Error marking notification as read." });
-  }
-};
-
-export const getDashboardData = async (req, res) => {
-  try {
-    const { userId } = req.auth;
-    if (!userId) {
-      return res.status(401).json({ message: "User not authenticated." });
-    }
-
-    const stats = await countUserStats(userId);
-    const recentReports = await getUserItems(userId, 5);
-    const recentActivity = await getRecentActivity(userId, 3);
-
-    res.status(200).json({
-      stats,
-      recentReports,
-      recentActivity
-    });
-  } catch (error) {
-    console.error("Error fetching dashboard data:", error.message);
-    res.status(500).json({ message: "Error fetching dashboard data." });
   }
 };

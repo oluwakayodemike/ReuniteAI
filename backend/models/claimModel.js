@@ -33,7 +33,7 @@ export const createClaim = async (claimData) => {
 
     const [{ id }] = await connection.execute("SELECT LAST_INSERT_ID() AS id;");
     const [newClaim] = await connection.execute("SELECT * FROM claims WHERE id = ?;", [id]);
-
+    
     return newClaim;
   } catch (error) {
     console.error("Error: Failed to create claim in db.", error);
