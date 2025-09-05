@@ -137,3 +137,32 @@ export const getUserLostReports = async (userId) => {
   const reports = await connection.execute(sql, [userId]);
   return reports;
 };
+
+export const getUserFoundReports = async (userId) => {
+  const sql = `
+    SELECT
+      id AS report_id,
+      description AS item_description,
+      item_date AS date_found,
+      status,
+      image_url,
+      CASE
+        WHEN status = 'found' THEN 'Awaiting Owner'
+        WHEN status = 'claimed' THEN 'Claim Pending'
+        WHEN status = 'returned' THEN 'Returned'
+        ELSE 'Unknown'
+      END AS display_status,
+      CASE
+        WHEN status = 'found' THEN 'searching'
+        WHEN status = 'claimed' THEN 'pending'
+        WHEN status = 'returned' THEN 'resolved'
+        ELSE 'unknown'
+      END AS status_class
+    FROM items
+    WHERE user_id = ? AND status IN ('found','claimed','returned')
+    ORDER BY item_date DESC;
+  `;
+
+  const reports = await connection.execute(sql, [userId]);
+  return reports;
+};

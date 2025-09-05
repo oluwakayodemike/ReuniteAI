@@ -1,4 +1,4 @@
-import { getUserItems, countUserStats, getRecentActivity, getUserLostReports  } from "../models/dashboardModel.js";
+import { getUserItems, countUserStats, getRecentActivity, getUserLostReports, getUserFoundReports } from "../models/dashboardModel.js";
 
 
 export const getDashboardData = async (req, res) => {
@@ -23,18 +23,24 @@ export const getDashboardData = async (req, res) => {
   }
 };
 
-export const getLostReports = async (req, res) => {
-  try {
-    const { userId } = req.auth;
-    if (!userId) {
-      return res.status(401).json({ message: "User not authenticated." });
+const getReportsController = (fetchReportsService, reportType) => {
+  return async (req, res) => {
+    try {
+      const { userId } = req.auth;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated." });
+      }
+      
+      const reports = await fetchReportsService(userId);
+
+      res.status(200).json({ reports });
+    } catch (error) {
+      const errorMessage = `Error fetching ${reportType} reports.`;
+      console.error(`${errorMessage}:`, error.message);
+      res.status(500).json({ message: errorMessage });
     }
-
-    const reports = await getUserLostReports(userId);
-
-    res.status(200).json({ reports });
-  } catch (error) {
-    console.error("Error fetching lost reports:", error.message);
-    res.status(500).json({ message: "Error fetching lost reports." });
-  }
+  };
 };
+
+export const getLostReports = getReportsController(getUserLostReports, "lost");
+export const getFoundReports = getReportsController(getUserFoundReports, "found");
