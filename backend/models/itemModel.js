@@ -183,6 +183,18 @@ export const markNotificationAsRead = async (notificationId, userId) => {
   }
 };
 
+export const markAllNotificationsAsRead = async (userId) => {
+  const sql = 'UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0';
+  try {
+    const result = await connection.execute(sql, [userId]);
+    console.log(`Marked ${result.affectedRows} notifications as read for user ${userId}.`);
+    return result;
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    throw error;
+  }
+};
+
 export const getItemById = async (itemId) => {
   const sql = "SELECT * FROM items WHERE id = ?";
   try {

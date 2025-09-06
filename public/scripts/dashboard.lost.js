@@ -9,7 +9,7 @@ window.addEventListener("load", async () => {
     await Clerk.load();
 
     if (!Clerk.user) {
-      window.location.href = "./index_clerk.html";
+      window.location.href = "../index.html";
       return;
     }
 

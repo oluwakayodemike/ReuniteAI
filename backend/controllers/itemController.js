@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
 import { Clerk } from "@clerk/clerk-sdk-node";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById } from "../models/itemModel.js";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, markAllNotificationsAsRead } from "../models/itemModel.js";
 import { createClaim, approveClaimTransaction } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
@@ -383,5 +383,20 @@ export const markNotificationRead = async (req, res) => {
       return res.status(404).json({ message: "Notification not found." });
     }
     res.status(500).json({ message: "Error marking notification as read." });
+  }
+};
+
+export const markAllNotificationsRead = async (req, res) => {
+  try {
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated." });
+    }
+
+    await markAllNotificationsAsRead(userId);
+    res.status(200).json({ message: "All notifications marked as read." });
+  } catch (error) {
+    console.error("Error in markAllNotificationsRead:", error.message);
+    res.status(500).json({ message: "Error marking all notifications as read." });
   }
 };
