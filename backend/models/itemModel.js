@@ -150,20 +150,48 @@ export const createNotification = async ({ user_id, message, lost_item_id, found
   console.log(`notification created for user ${user_id} regarding lost ID ${lost_item_id}`);
 };
 
-export const getUserNotifications = async (userId) => {
-  const sql = `
+export const getUserNotifications = async (userId, limit = 20, offset = 0, isReadFilter = undefined) => {
+  let sql = `
     SELECT id, message, is_read, created_at, lost_item_id, found_item_id
     FROM notifications
     WHERE user_id = ?
-    ORDER BY created_at DESC
-    LIMIT 20;
   `;
-  
+  const params = [userId];
+
+  if (isReadFilter !== undefined) {
+    sql += ' AND is_read = ?';
+    params.push(isReadFilter);
+  }
+
+  sql += `
+    ORDER BY created_at DESC
+    LIMIT ? OFFSET ?;
+  `;
+  params.push(limit, offset);
+
   try {
-    const notifications = await connection.execute(sql, [userId]);
+    const notifications = await connection.execute(sql, params);
     return notifications;
   } catch (error) {
     console.error("Error fetching notifications from DB:", error);
+    throw error;
+  }
+};
+
+export const getNotificationCount = async (userId, isReadFilter = undefined) => {
+  let sql = 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?';
+  const params = [userId];
+
+  if (isReadFilter !== undefined) {
+    sql += ' AND is_read = ?';
+    params.push(isReadFilter);
+  }
+
+  try {
+    const [{ count }] = await connection.execute(sql, params);
+    return count;
+  } catch (error) {
+    console.error("Error counting notifications:", error);
     throw error;
   }
 };

@@ -26,8 +26,6 @@ async function initializeLostReports(Clerk) {
   const statusFilter = document.getElementById("status-filter");
   const pagination = document.getElementById("pagination");
   const activityList = document.getElementById("activity-list");
-  const notifBadge = document.getElementById("notification-badge");
-  const notifList = document.getElementById("notification-list");
 
   let reports = [];
   let currentPage = 1;
@@ -69,32 +67,17 @@ async function initializeLostReports(Clerk) {
     }
   }
 
-  async function fetchActivityAndNotifications() {
+  async function fetchRecentActivity() {
     try {
       const token = await Clerk.session.getToken();
       const dashRes = await fetch("http://localhost:3001/api/dashboard", {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       const dashJson = dashRes.ok ? await dashRes.json() : {};
-      const recentActivity = dashJson.recentActivity || [];
-
-      let notifications = [];
-      try {
-        const nres = await fetch("http://localhost:3001/api/notifications", {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        });
-        if (nres.ok) {
-          const njson = await nres.json();
-          notifications = njson.notifications || [];
-        }
-      } catch (nerr) {
-        console.warn("Failed to fetch notifications:", nerr);
-      }
-
-      return { recentActivity, notifications };
+      return dashJson.recentActivity || [];
     } catch (err) {
       console.error("Error fetching recent activity:", err);
-      return { recentActivity: [], notifications: [] };
+      return [];
     }
   }
 
@@ -151,53 +134,6 @@ async function initializeLostReports(Clerk) {
         </div>
       `;
       activityList.appendChild(li);
-    });
-  }
-
-  function renderNotificationsDropdown(notifications) {
-    if (!notifBadge || !notifList) return;
-
-    const unreadCount = notifications.filter(n => !n.is_read).length;
-    if (unreadCount > 0) {
-      notifBadge.classList.add("visible");
-      notifBadge.textContent = String(unreadCount);
-    } else {
-      notifBadge.classList.remove("visible");
-      notifBadge.textContent = "0";
-    }
-
-    notifList.innerHTML = "";
-    if (!notifications || notifications.length === 0) {
-      notifList.innerHTML = `<li class="no-notifs">No notifications</li>`;
-      return;
-    }
-
-    notifications.forEach(notif => {
-      const li = document.createElement("li");
-      li.className = "notification-item" + (!notif.is_read ? " unread" : "");
-      li.innerHTML = `
-        <div class="notif-avatar">${escapeHtml((notif.message || "").slice(0,1) || "•")}</div>
-        <div class="notif-content">
-          <div class="notif-text">${escapeHtml(notif.message || "")}</div>
-          <div class="notif-time">${escapeHtml(new Date(notif.created_at || "").toLocaleString())}</div>
-        </div>
-      `;
-      li.addEventListener("click", async () => {
-        try {
-          const clickToken = await Clerk.session.getToken();
-          await fetch("http://localhost:3001/api/notifications/mark-read", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${clickToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ notificationId: notif.id })
-          });
-          li.classList.remove("unread");
-          const cur = Math.max(0, parseInt(notifBadge.textContent || "0") - 1);
-          notifBadge.textContent = cur;
-        } catch (err) {
-          console.error("Failed to mark notification read:", err);
-        }
-      });
-      notifList.appendChild(li);
     });
   }
 
@@ -265,9 +201,8 @@ async function initializeLostReports(Clerk) {
   reports = await fetchLostReports();
   updateUI();
 
-  const { recentActivity, notifications } = await fetchActivityAndNotifications();
+  const recentActivity = await fetchRecentActivity();
   renderActivity(recentActivity);
-  renderNotificationsDropdown(notifications);
 
   searchInput.addEventListener("input", () => {
     currentPage = 1;

@@ -26,8 +26,6 @@ async function initializeFoundReports(Clerk) {
   const statusFilter = document.getElementById("status-filter");
   const pagination = document.getElementById("pagination");
   const activityList = document.getElementById("activity-list");
-  const notifBadge = document.getElementById("notification-badge");
-  const notifList = document.getElementById("notification-list");
 
   let reports = [];
   let currentPage = 1;
@@ -69,67 +67,18 @@ async function initializeFoundReports(Clerk) {
     }
   }
 
-  async function fetchRecentActivityAndNotifications() {
+  async function fetchRecentActivity() {
     try {
       const token = await Clerk.session.getToken();
-      const r = await fetch("http://localhost:3001/api/dashboard", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      const dashRes = await fetch("http://localhost:3001/api/dashboard", {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-      if (!r.ok) throw new Error("Failed to fetch dashboard data");
-      const { recentActivity = [] } = await r.json();
-
-      let notifications = [];
-      try {
-        const nres = await fetch("http://localhost:3001/api/notifications", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (nres.ok) {
-          const njson = await nres.json();
-          notifications = njson.notifications || [];
-        }
-      } catch (nerr) {
-        console.warn("Failed to fetch notifications:", nerr);
-      }
-
-      return { recentActivity, notifications };
+      const dashJson = dashRes.ok ? await dashRes.json() : {};
+      return dashJson.recentActivity || [];
     } catch (err) {
       console.error("Error fetching recent activity:", err);
-      return { recentActivity: [], notifications: [] };
+      return [];
     }
-  }
-
-  function mapStatusForUI(report) {
-    const status = report.status;
-    let statusClass = report.status_class ? escapeHtml(report.status_class) : "";
-    let displayStatus = report.display_status ? escapeHtml(report.display_status) : "";
-
-    if (!displayStatus || !statusClass) {
-      switch (status) {
-        case "found":
-          displayStatus = displayStatus || "Awaiting Owner";
-          statusClass = statusClass || "searching";
-          break;
-        case "claimed":
-          displayStatus = displayStatus || "Claim Approved";
-          statusClass = statusClass || "pending";
-          break;
-        case "returned":
-          displayStatus = displayStatus || "Returned";
-          statusClass = statusClass || "resolved";
-          break;
-        default:
-          displayStatus = displayStatus || "Unknown";
-          statusClass = statusClass || "unknown";
-      }
-    }
-
-    return { statusClass, displayStatus };
   }
 
   function renderReports(list) {
@@ -146,12 +95,13 @@ async function initializeFoundReports(Clerk) {
     }
 
     list.forEach((report) => {
-      const { statusClass, displayStatus } = mapStatusForUI(report);
-      const dateField = report.date_found || report.date_reported || report.item_date;
+      const statusClass = escapeHtml(report.status_class || "unknown");
+      const displayStatus = escapeHtml(report.display_status || (report.status || "Unknown"));
+      const dateField = report.date_found || report.date_reported;
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${escapeHtml(report.item_description)}</td>
+        <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(report.item_description)}</td>
         <td>${fmtDate(dateField)}</td>
         <td>#${shortenId(report.report_id)}</td>
         <td><span class="status status-${statusClass}">${displayStatus}</span></td>
@@ -161,106 +111,36 @@ async function initializeFoundReports(Clerk) {
     });
   }
 
-  function renderActivityList(recentActivity) {
+  function renderActivity(list) {
     if (!activityList) return;
     activityList.innerHTML = "";
-    if (!recentActivity || recentActivity.length === 0) {
+
+    if (!list || list.length === 0) {
       activityList.innerHTML = `<li class="no-activity">No recent activity.</li>`;
       return;
     }
-    recentActivity.forEach(activity => {
+
+    list.forEach((activity) => {
       const li = document.createElement("li");
+      const activityClass = escapeHtml(activity.activity_class || "");
+      const icon = escapeHtml(activity.icon || "fa-solid fa-info");
+      const details = escapeHtml(activity.details || "");
+      const timeAgo = escapeHtml(activity.time_ago || new Date(activity.created_at || "").toLocaleString());
+
       li.innerHTML = `
-        <div class="activity-icon ${escapeHtml(activity.activity_class || "")}">
-          <i class="${escapeHtml(activity.icon || 'fa-solid fa-info')}"></i>
-        </div>
+        <div class="activity-icon ${activityClass}"><i class="${icon}"></i></div>
         <div class="activity-details">
-          <p>${escapeHtml(activity.details || "")}</p>
-          <span>${escapeHtml(activity.time_ago || "")}</span>
+          <p>${details}</p>
+          <span>${timeAgo}</span>
         </div>
       `;
       activityList.appendChild(li);
     });
   }
 
-  function renderNotificationsDropdown(notifications) {
-    if (!notifBadge || !notifList) return;
-
-    const unreadCount = notifications.filter(n => !n.is_read).length;
-    if (unreadCount > 0) {
-      notifBadge.classList.add("visible");
-      notifBadge.textContent = String(unreadCount);
-    } else {
-      notifBadge.classList.remove("visible");
-      notifBadge.textContent = "0";
-    }
-
-    notifList.innerHTML = "";
-    if (!notifications || notifications.length === 0) {
-      notifList.innerHTML = `<li class="no-notifs">No notifications</li>`;
-      return;
-    }
-
-    notifications.forEach(notif => {
-      const li = document.createElement("li");
-      li.className = "notification-item" + (!notif.is_read ? " unread" : "");
-      li.innerHTML = `
-        <div class="notif-avatar">${escapeHtml((notif.message || "").slice(0,1)) || "•"}</div>
-        <div class="notif-content">
-          <div class="notif-text">${escapeHtml(notif.message || "")}</div>
-          <div class="notif-time">${escapeHtml(new Date(notif.created_at || "").toLocaleString())}</div>
-        </div>
-      `;
-      li.addEventListener("click", async () => {
-        try {
-          const clickToken = await Clerk.session.getToken();
-          await fetch("http://localhost:3001/api/notifications/mark-read", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${clickToken}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ notificationId: notif.id })
-          });
-          li.classList.remove("unread");
-          const cur = Math.max(0, parseInt(notifBadge.textContent || "0") - 1);
-          notifBadge.textContent = cur;
-        } catch (err) {
-          console.error("Failed to mark notification read:", err);
-        }
-      });
-      notifList.appendChild(li);
-    });
-  }
-
-  function applyFilters() {
-    let filtered = [...reports];
-    const searchText = (searchInput?.value || "").toLowerCase();
-    const status = statusFilter?.value || "all";
-
-    if (searchText) {
-      filtered = filtered.filter((r) =>
-        String(r.item_description || "").toLowerCase().includes(searchText)
-      );
-    }
-
-    if (status !== "all") {
-      filtered = filtered.filter((r) => String(r.status) === status);
-    }
-
-    return filtered;
-  }
-
-  function paginate(list) {
-    const start = (currentPage - 1) * pageSize;
-    return list.slice(start, start + pageSize);
-  }
-
   function renderPagination(totalItems) {
-    if (!pagination) return;
     pagination.innerHTML = "";
     const totalPages = Math.ceil(totalItems / pageSize);
-
     if (totalPages <= 1) return;
 
     const makeLink = (page, label = page) => {
@@ -281,27 +161,47 @@ async function initializeFoundReports(Clerk) {
     if (currentPage < totalPages) pagination.appendChild(makeLink(currentPage + 1, "Next"));
   }
 
+  function applyFilters() {
+    let filtered = [...reports];
+    const searchText = (searchInput.value || "").toLowerCase();
+    const status = statusFilter.value;
+
+    if (searchText) {
+      filtered = filtered.filter((r) =>
+        String(r.item_description || "").toLowerCase().includes(searchText)
+      );
+    }
+
+    if (status !== "all") {
+      filtered = filtered.filter((r) => String(r.status || "").toLowerCase() === status);
+    }
+
+    return filtered;
+  }
+
+  function paginate(list) {
+    const start = (currentPage - 1) * pageSize;
+    return list.slice(start, start + pageSize);
+  }
+
   function updateUI() {
     const filtered = applyFilters();
     const paginated = paginate(filtered);
     renderReports(paginated);
     renderPagination(filtered.length);
   }
-
+  
   reports = await fetchFoundReports();
   updateUI();
 
-  (async () => {
-    const { recentActivity, notifications } = await fetchRecentActivityAndNotifications();
-    renderActivityList(recentActivity);
-    renderNotificationsDropdown(notifications);
-  })();
+  const recentActivity = await fetchRecentActivity();
+  renderActivity(recentActivity);
 
-  searchInput?.addEventListener("input", () => {
+  searchInput.addEventListener("input", () => {
     currentPage = 1;
     updateUI();
   });
-  statusFilter?.addEventListener("change", () => {
+  statusFilter.addEventListener("change", () => {
     currentPage = 1;
     updateUI();
   });

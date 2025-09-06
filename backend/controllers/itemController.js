@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
 import { Clerk } from "@clerk/clerk-sdk-node";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, markAllNotificationsAsRead } from "../models/itemModel.js";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, markAllNotificationsAsRead, getNotificationCount } from "../models/itemModel.js";
 import { createClaim, approveClaimTransaction } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
@@ -355,9 +355,17 @@ export const getNotifications = async (req, res) => {
       return res.status(401).json({ message: "User not authenticated." });
     }
 
-    const notifications = await getUserNotifications(userId);
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    let isReadFilter;
+    if (req.query.is_read === '0' || req.query.is_read === '1') {
+      isReadFilter = parseInt(req.query.is_read);
+    }
 
-    res.status(200).json({ notifications });
+    const notifications = await getUserNotifications(userId, limit, offset, isReadFilter);
+    const total = await getNotificationCount(userId, isReadFilter);
+
+    res.status(200).json({ notifications, total });
   } catch (error) {
     console.error("Error fetching notifications:", error.message);
     res.status(500).json({ message: "Error fetching notifications." });

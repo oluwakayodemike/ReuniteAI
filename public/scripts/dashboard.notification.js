@@ -1,3 +1,5 @@
+import { fetchNotifications, markAsRead, markAllAsRead, getNotificationClass, escapeHtml } from './notifications.js';
+
 window.addEventListener("load", async () => {
   const Clerk = window.Clerk;
   if (!Clerk) {
@@ -26,8 +28,12 @@ async function initializeNotificationsPage(Clerk) {
   const unreadTab = document.querySelector(".notification-tab:nth-child(2)");
   const markAllBtn = document.querySelector(".action-btn-secondary");
   const activityList = document.getElementById("activity-list");
+  const pagination = document.getElementById("pagination");
 
   let notifications = [];
+  let totalNotifications = 0;
+  let currentPage = 1;
+  const pageSize = 10;
   let currentFilter = "all";
 
   const fmtDate = (iso) => {
@@ -45,24 +51,6 @@ async function initializeNotificationsPage(Clerk) {
     }
   };
 
-  async function fetchNotifications() {
-    try {
-      const token = await Clerk.session.getToken();
-      const res = await fetch("http://localhost:3001/api/notifications", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch notifications");
-      const { notifications: data } = await res.json();
-      return data || [];
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-      return [];
-    }
-  }
-
   async function fetchRecentActivity() {
     try {
       const token = await Clerk.session.getToken();
@@ -78,46 +66,26 @@ async function initializeNotificationsPage(Clerk) {
     }
   }
 
+  async function refreshNotifications() {
+    const isRead = currentFilter === 'unread' ? 0 : undefined;
+    const data = await fetchNotifications(Clerk, pageSize, (currentPage - 1) * pageSize, isRead);
+    notifications = data.notifications;
+    totalNotifications = data.total;
+    updateUI();
+  }
+
   async function markAsRead(notificationId) {
-    try {
-      const token = await Clerk.session.getToken();
-      const res = await fetch("http://localhost:3001/api/notifications/mark-read", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationId }),
-      });
-      if (!res.ok) throw new Error("Failed to mark as read");
-      // Update local state
-      notifications = notifications.map(n => n.id === notificationId ? { ...n, is_read: true } : n);
-      updateUI();
-    } catch (err) {
-      console.error("Error marking notification as read:", err);
+    const success = await markAsRead(Clerk, notificationId);
+    if (success) {
+      await refreshNotifications();
     }
   }
 
-  async function markAllAsRead() {
-    try {
-      const token = await Clerk.session.getToken();
-      const res = await fetch("http://localhost:3001/api/notifications/mark-all-read", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      if (!res.ok) throw new Error("Failed to mark all as read");
-      // Update local state
-      notifications = notifications.map(n => ({ ...n, is_read: true }));
-      updateUI();
-    } catch (err) {
-      console.error("Error marking all notifications as read:", err);
+  async function markAllAsReadHandler() {
+    const success = await markAllAsRead(Clerk);
+    if (success) {
+      await refreshNotifications();
     }
-  }
-
-  function getNotificationClass(message) {
-    const msg = (message || "").toLowerCase();
-    if (msg.includes("match")) return { class: "matches", icon: "fa-solid fa-link" };
-    if (msg.includes("filed") || msg.includes("reported")) return { class: "resolved", icon: "fa-solid fa-check" };
-    if (msg.includes("claim") || msg.includes("pending")) return { class: "pending", icon: "fa-solid fa-user-check" };
-    if (msg.includes("reunited") || msg.includes("approved")) return { class: "resolved", icon: "fa-solid fa-handshake" };
-    return { class: "", icon: "fa-solid fa-bell" };
   }
 
   function getDetailLink(notif) {
@@ -152,7 +120,6 @@ async function initializeNotificationsPage(Clerk) {
         <a href="${link}" class="item-action-btn"><i class="fa-solid fa-chevron-right"></i></a>
       `;
 
-      // Mark as read on click if unread
       if (!notif.is_read) {
         li.addEventListener("click", () => markAsRead(notif.id));
       }
@@ -183,52 +150,56 @@ async function initializeNotificationsPage(Clerk) {
     });
   }
 
-  function applyFilter() {
-    return currentFilter === "all" ? notifications : notifications.filter(n => !n.is_read);
+  function renderPagination() {
+    pagination.innerHTML = "";
+    const totalPages = Math.ceil(totalNotifications / pageSize);
+    if (totalPages <= 1) return;
+
+    const makeLink = (page, label = page) => {
+      const link = document.createElement("a");
+      link.href = "#";
+      link.className = "pagination-link" + (page === currentPage ? " active" : "");
+      link.textContent = label;
+      link.addEventListener("click", async (e) => {
+        e.preventDefault();
+        currentPage = page;
+        await refreshNotifications();
+      });
+      return link;
+    };
+
+    if (currentPage > 1) pagination.appendChild(makeLink(currentPage - 1, "Previous"));
+    for (let i = 1; i <= totalPages; i++) pagination.appendChild(makeLink(i));
+    if (currentPage < totalPages) pagination.appendChild(makeLink(currentPage + 1, "Next"));
   }
 
   function updateUI() {
-    const filtered = applyFilter();
-    renderNotifications(filtered);
+    renderNotifications(notifications);
+    renderPagination();
   }
 
-  // Event listeners
-  allTab.addEventListener("click", () => {
+  allTab.addEventListener("click", async () => {
     allTab.classList.add("active");
     unreadTab.classList.remove("active");
     currentFilter = "all";
-    updateUI();
+    currentPage = 1;
+    await refreshNotifications();
   });
 
-  unreadTab.addEventListener("click", () => {
+  unreadTab.addEventListener("click", async () => {
     unreadTab.classList.add("active");
     allTab.classList.remove("active");
     currentFilter = "unread";
-    updateUI();
+    currentPage = 1;
+    await refreshNotifications();
   });
 
-  markAllBtn.addEventListener("click", markAllAsRead);
+  markAllBtn.addEventListener("click", markAllAsReadHandler);
 
-  // Initial fetch and render
-  notifications = await fetchNotifications();
-  updateUI();
+  await refreshNotifications();
 
   const recentActivity = await fetchRecentActivity();
   renderActivity(recentActivity);
 
-  // Poll for new notifications every 60s
-  setInterval(async () => {
-    notifications = await fetchNotifications();
-    updateUI();
-  }, 60000);
-}
-
-function escapeHtml(str) {
-  if (str == null) return "";
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+  setInterval(refreshNotifications, 60000);
 }
