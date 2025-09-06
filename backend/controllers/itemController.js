@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
 import { Clerk } from "@clerk/clerk-sdk-node";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, markAllNotificationsAsRead, getNotificationCount } from "../models/itemModel.js";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, batchCreateNotifications, getUserNotifications, markNotificationAsRead, getItemById, markAllNotificationsAsRead, getNotificationCount } from "../models/itemModel.js";
 import { createClaim, approveClaimTransaction } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
@@ -35,18 +35,20 @@ export const reportItem = async (req, res) => {
     const { status, description, university, customLocation, lat, lng, date, verification_question, verification_answer } = req.body;
     const imageBuffer = req.file.buffer;
 
-    const imageUrl = await uploadImage(imageBuffer);
-    console.log('image uploaded successfully:', imageUrl);
+    console.log("running image upload and embedding generation in parallel...");
 
     const form = new FormData();
     form.append("items", imageBuffer, req.file.originalname);
+    
+    const [imageUrl, bentoResponse] = await Promise.all([
+      uploadImage(imageBuffer),
+      axios.post(BENTO_URL, form, {
+        headers: { ...form.getHeaders() },
+      }),
+    ]);
 
-    console.log("Sending image for embedding...");
-    const bentoResponse = await axios.post(BENTO_URL, form, {
-      headers: {
-        ...form.getHeaders(),
-      },
-    });
+    console.log('Image uploaded successfully:', imageUrl);
+    console.log("Embedding received successfully.");
 
     const embedding = bentoResponse.data[0];
     console.log(`Saving '${status}' item to TiDB for user: ${userId}...`);
@@ -69,21 +71,22 @@ export const reportItem = async (req, res) => {
       console.log(`NotifyAgent: Searching for matching lost items for found ID: ${newItem.id}`);
       const potentialLostMatches = await findSimilarLostItems(JSON.parse(newItem.embedding), newItem.description, cleanUpDesc);
       
-      for (const match of potentialLostMatches) {
-        const SIMILARITY_THRESHOLD = 0.20;
+      const SIMILARITY_THRESHOLD = 0.20;
 
-        if (match.distance < SIMILARITY_THRESHOLD) {
+      const notificationsToCreate = potentialLostMatches
+        .filter(match => match.distance < SIMILARITY_THRESHOLD)
+        .map(match => {
           const message = `A potential match has been found for your lost item: '${match.description}'. Check your matches!`;
-          await createNotification({
+          return {
             user_id: match.user_id,
-            message,
+            message: message,
             lost_item_id: match.id,
             found_item_id: newItem.id
-          });
-        }
-      }
-      if (potentialLostMatches.length > 0) {
-        console.log(`NotifyAgent: Sent ${potentialLostMatches.length} notifications.`);
+          };
+        });
+        
+      if (notificationsToCreate.length > 0) {
+        await batchCreateNotifications(notificationsToCreate);
       } else {
         console.log(`NotifyAgent: No matching lost items found.`);
       }
@@ -105,17 +108,13 @@ export const searchItems = async (req, res) => {
     const { description, university, customLocation, lat, lng, date } = req.body;
     const imageBuffer = req.file.buffer;
 
-    const imageUrl = await uploadImage(imageBuffer);
-    console.log('image uploaded successfully:', imageUrl);
-
     const form = new FormData();
     form.append("items", imageBuffer, req.file.originalname);
 
-    console.log("Sending image for embedding...");
-    const bentoResponse = await axios.post(BENTO_URL, form, {
-      headers: { ...form.getHeaders() },
-    });
-
+    const [imageUrl, bentoResponse] = await Promise.all([
+      uploadImage(imageBuffer),
+      axios.post(BENTO_URL, form, { headers: { ...form.getHeaders() } })
+    ]);
     const embedding = bentoResponse.data[0];
     console.log("successfully got embed...");
 
@@ -191,8 +190,11 @@ export const verifyClaim = async (req, res) => {
     const { foundItemId, lostItemId, claimantAnswer } = req.body;
     console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
 
-    const foundItem = await getItemById(foundItemId);
-    const lostItem = await getItemById(lostItemId);
+    const [foundItem, lostItem] = await Promise.all([
+      getItemById(foundItemId),
+      getItemById(lostItemId)
+    ]);
+
     const claimantEmail = req.auth.userEmail || 'claimant@reunite.ai';
 
     if (!foundItem || !lostItem) {
@@ -362,8 +364,10 @@ export const getNotifications = async (req, res) => {
       isReadFilter = parseInt(req.query.is_read);
     }
 
-    const notifications = await getUserNotifications(userId, limit, offset, isReadFilter);
-    const total = await getNotificationCount(userId, isReadFilter);
+    const [notifications, total] = await Promise.all([
+      getUserNotifications(userId, limit, offset, isReadFilter),
+      getNotificationCount(userId, isReadFilter)
+    ]);
 
     res.status(200).json({ notifications, total });
   } catch (error) {

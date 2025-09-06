@@ -150,6 +150,34 @@ export const createNotification = async ({ user_id, message, lost_item_id, found
   console.log(`notification created for user ${user_id} regarding lost ID ${lost_item_id}`);
 };
 
+export const batchCreateNotifications = async (notifications) => {
+  if (!notifications || notifications.length === 0) {
+    return;
+  }
+
+  try {
+    const sql = `
+      INSERT INTO notifications (user_id, message, lost_item_id, found_item_id, created_at)
+      VALUES ?;
+    `;
+
+    const values = notifications.map(n => [
+      n.user_id,
+      n.message,
+      n.lost_item_id,
+      n.found_item_id,
+      new Date()
+    ]);
+
+    await connection.execute(sql, [values]);
+
+    console.log(`Successfully batch-inserted ${notifications.length} notifications.`);
+  } catch (error) {
+    console.error("Error in batchCreateNotifications:", error);
+    throw error;
+  }
+};
+
 export const getUserNotifications = async (userId, limit = 20, offset = 0, isReadFilter = undefined) => {
   let sql = `
     SELECT id, message, is_read, created_at, lost_item_id, found_item_id

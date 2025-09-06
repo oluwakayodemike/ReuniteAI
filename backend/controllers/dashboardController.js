@@ -7,15 +7,17 @@ export const getDashboardData = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated." });
     }
-
-    const stats = await countUserStats(userId);
-    const recentReports = await getUserItems(userId, 5);
-    const recentActivity = await getRecentActivity(userId, 3);
+    
+    const [stats, recentReports, recentActivity] = await Promise.all([
+      countUserStats(userId),
+      getUserItems(userId, 5),
+      getRecentActivity(userId, 3),
+    ]);
 
     res.status(200).json({
       stats,
       recentReports,
-      recentActivity
+      recentActivity,
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error.message);
