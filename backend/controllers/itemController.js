@@ -1,10 +1,12 @@
 import axios from "axios";
 import FormData from "form-data";
-import { createItem, findSimilarItems, findSimilarLostItems, createNotification, getUserNotifications, markNotificationAsRead, getItemById, updateItemStatusToClaimed, getUserItems, countUserStats, getRecentActivity } from "../models/itemModel.js";
+import { Clerk } from "@clerk/clerk-sdk-node";
+import { createItem, findSimilarItems, findSimilarLostItems, createNotification, batchCreateNotifications, getUserNotifications, markNotificationAsRead, getItemById, markAllNotificationsAsRead, getNotificationCount } from "../models/itemModel.js";
 import { createClaim, approveClaimTransaction } from "../models/claimModel.js";
 import { uploadImage } from "../utils/cloudinary.js"
 
 const BENTO_URL = process.env.CLIP_API_URL;
+const clerkClient = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const cleanUpDesc = (text) => {
   if (!text) return '';
@@ -33,18 +35,20 @@ export const reportItem = async (req, res) => {
     const { status, description, university, customLocation, lat, lng, date, verification_question, verification_answer } = req.body;
     const imageBuffer = req.file.buffer;
 
-    const imageUrl = await uploadImage(imageBuffer);
-    console.log('image uploaded successfully:', imageUrl);
+    console.log("running image upload and embedding generation in parallel...");
 
     const form = new FormData();
     form.append("items", imageBuffer, req.file.originalname);
+    
+    const [imageUrl, bentoResponse] = await Promise.all([
+      uploadImage(imageBuffer),
+      axios.post(BENTO_URL, form, {
+        headers: { ...form.getHeaders() },
+      }),
+    ]);
 
-    console.log("Sending image for embedding...");
-    const bentoResponse = await axios.post(BENTO_URL, form, {
-      headers: {
-        ...form.getHeaders(),
-      },
-    });
+    console.log('Image uploaded successfully:', imageUrl);
+    console.log("Embedding received successfully.");
 
     const embedding = bentoResponse.data[0];
     console.log(`Saving '${status}' item to TiDB for user: ${userId}...`);
@@ -67,21 +71,22 @@ export const reportItem = async (req, res) => {
       console.log(`NotifyAgent: Searching for matching lost items for found ID: ${newItem.id}`);
       const potentialLostMatches = await findSimilarLostItems(JSON.parse(newItem.embedding), newItem.description, cleanUpDesc);
       
-      for (const match of potentialLostMatches) {
-        const SIMILARITY_THRESHOLD = 0.20;
+      const SIMILARITY_THRESHOLD = 0.20;
 
-        if (match.distance < SIMILARITY_THRESHOLD) {
+      const notificationsToCreate = potentialLostMatches
+        .filter(match => match.distance < SIMILARITY_THRESHOLD)
+        .map(match => {
           const message = `A potential match has been found for your lost item: '${match.description}'. Check your matches!`;
-          await createNotification({
+          return {
             user_id: match.user_id,
-            message,
+            message: message,
             lost_item_id: match.id,
             found_item_id: newItem.id
-          });
-        }
-      }
-      if (potentialLostMatches.length > 0) {
-        console.log(`NotifyAgent: Sent ${potentialLostMatches.length} notifications.`);
+          };
+        });
+        
+      if (notificationsToCreate.length > 0) {
+        await batchCreateNotifications(notificationsToCreate);
       } else {
         console.log(`NotifyAgent: No matching lost items found.`);
       }
@@ -103,17 +108,13 @@ export const searchItems = async (req, res) => {
     const { description, university, customLocation, lat, lng, date } = req.body;
     const imageBuffer = req.file.buffer;
 
-    const imageUrl = await uploadImage(imageBuffer);
-    console.log('image uploaded successfully:', imageUrl);
-
     const form = new FormData();
     form.append("items", imageBuffer, req.file.originalname);
 
-    console.log("Sending image for embedding...");
-    const bentoResponse = await axios.post(BENTO_URL, form, {
-      headers: { ...form.getHeaders() },
-    });
-
+    const [imageUrl, bentoResponse] = await Promise.all([
+      uploadImage(imageBuffer),
+      axios.post(BENTO_URL, form, { headers: { ...form.getHeaders() } })
+    ]);
     const embedding = bentoResponse.data[0];
     console.log("successfully got embed...");
 
@@ -189,8 +190,11 @@ export const verifyClaim = async (req, res) => {
     const { foundItemId, lostItemId, claimantAnswer } = req.body;
     console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
 
-    const foundItem = await getItemById(foundItemId);
-    const lostItem = await getItemById(lostItemId);
+    const [foundItem, lostItem] = await Promise.all([
+      getItemById(foundItemId),
+      getItemById(lostItemId)
+    ]);
+
     const claimantEmail = req.auth.userEmail || 'claimant@reunite.ai';
 
     if (!foundItem || !lostItem) {
@@ -251,9 +255,22 @@ export const verifyClaim = async (req, res) => {
           const finderUserId = foundItem.user_id;
           const itemDesc = (lostItem.description || foundItem.description || "an item").slice(0, 120);
 
+          let finderEmail = null;
+          try {
+            const finder = await clerkClient.users.getUser(foundItem.user_id);
+            finderEmail =
+              finder.emailAddresses?.[0]?.emailAddress || null;
+          } catch (err) {
+            console.error("Failed to fetch finder email from Clerk:", err);
+          }
+
           // owners notification
           if (ownerUserId) {
-            const ownerMsg = `Good news: your lost item "${itemDesc}" has been reunited. Pickup code: ${pickupCode}.`;
+            const ownerMsg = `Good news: your lost item "${itemDesc}" has been reunited. Pickup code: ${pickupCode}. ${
+              finderEmail
+                ? `Contact the finder at ${finderEmail} to arrange handoff.`
+                : "Contact the finder to arrange handoff."
+            }`;
             await createNotification({
               user_id: ownerUserId,
               message: ownerMsg,
@@ -265,7 +282,7 @@ export const verifyClaim = async (req, res) => {
 
           // finders notification
           if (finderUserId && finderUserId !== ownerUserId) {
-            const finderMsg = `Your found item "${itemDesc}" has been claimed and approved. Pickup code: ${pickupCode}.`;
+            const finderMsg = `Your found item "${itemDesc}" has been claimed and approved. Pickup code: ${pickupCode}. Await owner contact for handoff.`;
             await createNotification({
               user_id: finderUserId,
               message: finderMsg,
@@ -340,9 +357,19 @@ export const getNotifications = async (req, res) => {
       return res.status(401).json({ message: "User not authenticated." });
     }
 
-    const notifications = await getUserNotifications(userId);
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    let isReadFilter;
+    if (req.query.is_read === '0' || req.query.is_read === '1') {
+      isReadFilter = parseInt(req.query.is_read);
+    }
 
-    res.status(200).json({ notifications });
+    const [notifications, total] = await Promise.all([
+      getUserNotifications(userId, limit, offset, isReadFilter),
+      getNotificationCount(userId, isReadFilter)
+    ]);
+
+    res.status(200).json({ notifications, total });
   } catch (error) {
     console.error("Error fetching notifications:", error.message);
     res.status(500).json({ message: "Error fetching notifications." });
@@ -371,24 +398,17 @@ export const markNotificationRead = async (req, res) => {
   }
 };
 
-export const getDashboardData = async (req, res) => {
+export const markAllNotificationsRead = async (req, res) => {
   try {
     const { userId } = req.auth;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated." });
     }
 
-    const stats = await countUserStats(userId);
-    const recentReports = await getUserItems(userId, 5);
-    const recentActivity = await getRecentActivity(userId, 3);
-
-    res.status(200).json({
-      stats,
-      recentReports,
-      recentActivity
-    });
+    await markAllNotificationsAsRead(userId);
+    res.status(200).json({ message: "All notifications marked as read." });
   } catch (error) {
-    console.error("Error fetching dashboard data:", error.message);
-    res.status(500).json({ message: "Error fetching dashboard data." });
+    console.error("Error in markAllNotificationsRead:", error.message);
+    res.status(500).json({ message: "Error marking all notifications as read." });
   }
 };

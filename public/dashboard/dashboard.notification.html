@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ReuniteAI - My Found Reports</title>
+    <title>ReuniteAI - Notifications</title>
     <link rel="stylesheet" href="../styles/style.css" />
     <link rel="stylesheet" href="../styles/dashboard.css" />
     <link rel="stylesheet" href="../styles/pages.css" />
@@ -23,7 +23,8 @@
       type="text/javascript"
     ></script>
     <script src="../scripts/auth.js" type="module" defer></script>
-    <script src="../scripts/dashboard.found.js" defer></script>
+    <script src="../scripts/notifications.js" type="module" defer></script>
+    <script src="../scripts/dashboard.notification.js" type="module" defer></script>
   </head>
   <body>
     <header>
@@ -65,61 +66,38 @@
         <div class="dashboard-layout">
             <aside class="dashboard-sidebar">
                 <nav class="sidebar-nav">
-                    <a href="../dashboard.html" class="sidebar-link active"><i class="fa-solid fa-house"></i><span>Dashboard</span></a>
+                    <a href="../dashboard.html" class="sidebar-link"><i class="fa-solid fa-house"></i><span>Dashboard</span></a>
                     <a href="./dashboard.lost.html" class="sidebar-link"><i class="fa-solid fa-magnifying-glass"></i><span>My Lost Reports</span></a>
                     <a href="./dashboard.found.html" class="sidebar-link"><i class="fa-solid fa-box-open"></i><span>My Found Reports</span></a>
-                    <a href="./dashboard.notification.html" class="sidebar-link"><i class="fa-solid fa-bell"></i><span>Notifications</span></a>
+                    <a href="./dashboard.notification.html" class="sidebar-link active"><i class="fa-solid fa-bell"></i><span>Notifications</span></a>
                     <a href="./dashboard.settings.html" class="sidebar-link"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
                 </nav>
                 <div class="sidebar-actions">
-                    <a href="../report-lost.html" class="action-btn primary"><i class="fa-solid fa-plus"></i> Report Lost Item</a>
-                    <a href="../report-found.html" class="action-btn secondary">Report Found Item</a>
+                    <a href="#" class="action-btn primary"><i class="fa-solid fa-plus"></i> Report Lost Item</a>
+                    <a href="#" class="action-btn secondary">Report Found Item</a>
                 </div>
             </aside>
 
             <div class="dashboard-main">
                 <div class="dashboard-header">
-                    <h1>My Found Reports</h1>
-                    <p>Manage items you've found and help reunite them with their owners.</p>
-                </div>
-
-                <div class="page-card filter-card">
-                    <input type="text" class="search-input" placeholder="Search by item name...">
-                    <div class="filter-group">
-                        <label for="status-filter">Status:</label>
-                        <select id="status-filter" class="filter-select">
-                            <option value="all">All</option>
-                            <option value="found">Awaiting Owner</option>
-                            <option value="claimed">Claim Pending</option>
-                            <option value="returned">Returned</option>
-                        </select>
-                    </div>
+                    <h1>Notifications</h1>
+                    <p>Stay updated with all activities related to your reports.</p>
                 </div>
 
                 <div class="page-card">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Item Description</th>
-                                    <th>Date Found</th>
-                                    <th>Report ID</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reports-table-body">
-                                <tr>
-                                    <td colspan="5" style="text-align:center; color:var(--text-secondary)">
-                                         Loading reports...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="notifications-header">
+                        <div class="notification-tabs">
+                            <button class="notification-tab active">All</button>
+                            <button class="notification-tab">Unread</button>
+                        </div>
+                        <button class="action-btn-secondary">Mark All as Read</button>
                     </div>
-                    
+
+                    <ul class="notification-list">
+                      <!-- dynamico -->
+                    </ul>
                     <div class="pagination-container" id="pagination">
-                        <!-- dyanamico  -->
+                      <!-- dynamico -->
                     </div>
                 </div>
             </div>
@@ -127,7 +105,7 @@
             <aside class="dashboard-aside">
                 <h3>Recent Activity</h3>
                 <ul class="activity-list" id="activity-list">
-                <!-- JS injects activity here -->
+                  <!-- dynamico -->
                 </ul>
             </aside>
         </div>
