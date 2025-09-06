@@ -1,8 +1,7 @@
-export async function fetchNotifications(Clerk, limit = 20, offset = 0, isRead = undefined) {
+export async function fetchNotifications(Clerk, limit = 100, offset = 0) {
   try {
     const token = await Clerk.session.getToken();
     let url = `http://localhost:3001/api/notifications?limit=${limit}&offset=${offset}`;
-    if (isRead !== undefined) url += `&is_read=${isRead}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -59,13 +58,7 @@ export function getNotificationClass(message) {
 
 export function formatNotificationDate(dateString) {
   const date = new Date(dateString);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 export function escapeHtml(str) {
@@ -86,30 +79,16 @@ export function initializeNotificationDropdown(Clerk) {
 
   if (!notifIcon || !dropdown || !badge || !list) return;
 
-  notifIcon.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isVisible = dropdown.style.display === 'block';
-    dropdown.style.display = isVisible ? 'none' : 'block';
-    if (!isVisible) {
-      refreshNotifications();
-    }
-  });
+  let allNotifications = [];
 
-  document.addEventListener('click', (e) => {
-    if (!dropdown.contains(e.target) && !notifIcon.contains(e.target)) {
-      dropdown.style.display = 'none';
-    }
-  });
-
-  async function refreshNotifications() {
-    const { notifications } = await fetchNotifications(Clerk);
+  function renderDropdown() {
     list.innerHTML = '';
     let unreadCount = 0;
 
-    if (notifications.length === 0) {
+    if (allNotifications.length === 0) {
       list.innerHTML = '<li class="no-notifications">You have no new notifications!</li>';
     } else {
-      notifications.forEach(notif => {
+      allNotifications.forEach(notif => {
         if (!notif.is_read) unreadCount++;
 
         const li = document.createElement('li');
@@ -127,11 +106,15 @@ export function initializeNotificationDropdown(Clerk) {
         `;
 
         li.addEventListener('click', async () => {
-          if (!notif.is_read) {
-            await markAsRead(Clerk, notif.id);
-            refreshNotifications();
-          }
           const url = notif.lost_item_id ? `./search-result.html?lostItemId=${notif.lost_item_id}` : '#';
+
+          if (!notif.is_read) {
+            const success = await markAsRead(Clerk, notif.id);
+            if (success) {
+              notif.is_read = true;
+              renderDropdown();
+            }
+          }
           window.location.href = url;
         });
 
@@ -140,13 +123,30 @@ export function initializeNotificationDropdown(Clerk) {
     }
 
     badge.textContent = unreadCount;
-    if (unreadCount > 0) {
-      badge.classList.add('visible');
-    } else {
-      badge.classList.remove('visible');
-    }
+    badge.classList.toggle('visible', unreadCount > 0);
   }
 
-  refreshNotifications();
-  setInterval(refreshNotifications, 60000);
+  async function refreshNotificationsFromServer() {
+    const { notifications } = await fetchNotifications(Clerk);
+    allNotifications = notifications;
+    renderDropdown();
+  }
+
+  notifIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = dropdown.style.display === 'block';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+      refreshNotificationsFromServer();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && !notifIcon.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  refreshNotificationsFromServer();
+  setInterval(refreshNotificationsFromServer, 60000);
 }

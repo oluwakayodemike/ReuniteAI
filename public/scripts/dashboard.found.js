@@ -101,7 +101,7 @@ async function initializeFoundReports(Clerk) {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td style="max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(report.item_description)}</td>
+        <td>${escapeHtml(report.item_description)}</td>
         <td>${fmtDate(dateField)}</td>
         <td>#${shortenId(report.report_id)}</td>
         <td><span class="status status-${statusClass}">${displayStatus}</span></td>
