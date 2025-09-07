@@ -143,8 +143,8 @@ function initializeForm() {
     submitButton.innerHTML = '<div class="loading-spinner"></div>';
 
     const endpoint = status === 'lost' 
-        ? 'http://localhost:3001/api/items/search' 
-        : 'http://localhost:3001/api/items/report';
+        ? 'https://reuniteai-production.up.railway.app/api/items/search' 
+        : 'https://reuniteai-production.up.railway.app/api/items/report';
     try {
       const token = await Clerk.session.getToken();
       if (!token) {

@@ -52,7 +52,7 @@ async function initializeFoundReports(Clerk) {
   async function fetchFoundReports() {
     try {
       const token = await Clerk.session.getToken();
-      const r = await fetch("http://localhost:3001/api/dashboard/found-reports", {
+      const r = await fetch("https://reuniteai-production.up.railway.app/api/dashboard/found-reports", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -70,7 +70,7 @@ async function initializeFoundReports(Clerk) {
   async function fetchRecentActivity() {
     try {
       const token = await Clerk.session.getToken();
-      const dashRes = await fetch("http://localhost:3001/api/dashboard", {
+      const dashRes = await fetch("https://reuniteai-production.up.railway.app/api/dashboard", {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       const dashJson = dashRes.ok ? await dashRes.json() : {};
