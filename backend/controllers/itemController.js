@@ -188,14 +188,22 @@ export const startClaimProcess = async (req, res) => {
 export const verifyClaim = async (req, res) => {
   try {
     const { foundItemId, lostItemId, claimantAnswer } = req.body;
+    const claimant = await clerkClient.users.getUser(req.auth.userId);
+
+    claimantEmail = claimant.emailAddresses?.[0]?.emailAddress || claimantEmail;
+
     console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
 
     const [foundItem, lostItem] = await Promise.all([
       getItemById(foundItemId),
-      getItemById(lostItemId)
+      getItemById(lostItemId),
+      clerkClient.users.getUser(req.auth.userId).catch(err => {
+        console.error("Failed to fetch claimant email from Clerk:", err);
+        return null;
+      })
     ]);
 
-    const claimantEmail = req.auth.userEmail || 'claimant@reunite.ai';
+    const claimantEmail = claimant?.emailAddresses?.[0]?.emailAddress || 'claimant@reunite.ai';
 
     if (!foundItem || !lostItem) {
       return res.status(404).json({ message: "Required item reports not found." });
@@ -291,7 +299,7 @@ export const verifyClaim = async (req, res) => {
             });
             console.log(`notification created for finder (user=${finderUserId})`);
           }
-        } catch (notifErr) {
+        } catch (notifErr) {  
           console.error("failed to create notifications after approval:", notifErr);
         }
 
