@@ -24,6 +24,13 @@ app.use((err, req, res, next) => {
   res.status(401).send('Unauthenticated!');
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-});
+// export app for serverless adapter
+export default app;
+
+// only listen when run directly (local dev)
+if (process.env.NODE_ENV !== 'serverless') {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
+  });
+}
