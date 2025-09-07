@@ -47,7 +47,9 @@ async function initializeNotificationsPage(Clerk) {
   async function fetchRecentActivity() {
     try {
       const token = await Clerk.session.getToken();
-      const res = await fetch("http://localhost:3001/api/dashboard", { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
+      console.log(token);
+
+      const res = await fetch("https://reuniteai-production.up.railway.app/api/dashboard", { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
       const { recentActivity } = await res.json();
       return recentActivity || [];

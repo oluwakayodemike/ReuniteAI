@@ -57,7 +57,7 @@ async function initializeDashboard(Clerk) {
   try {
     const token = await Clerk.session.getToken();
 
-    const r = await fetch("http://localhost:3001/api/dashboard", {
+    const r = await fetch("https://reuniteai-production.up.railway.app/api/dashboard", {
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
@@ -129,7 +129,7 @@ async function initializeDashboard(Clerk) {
 
     if (notifBadge && notifList) {
       try {
-        const nres = await fetch("http://localhost:3001/api/notifications", {
+        const nres = await fetch("https://reuniteai-production.up.railway.app/api/notifications", {
           headers: {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
@@ -152,7 +152,7 @@ async function initializeDashboard(Clerk) {
             li.addEventListener("click", async () => {
               try {
                 const clickToken = await Clerk.session.getToken();
-                await fetch("http://localhost:3001/api/notifications/mark-read", {
+                await fetch("https://reuniteai-production.up.railway.app/api/notifications/mark-read", {
                   method: "POST",
                   headers: {
                     "Authorization": `Bearer ${clickToken}`,

@@ -1,7 +1,7 @@
 export async function fetchNotifications(Clerk, limit = 100, offset = 0) {
   try {
     const token = await Clerk.session.getToken();
-    let url = `http://localhost:3001/api/notifications?limit=${limit}&offset=${offset}`;
+    let url = `https://reuniteai-production.up.railway.app/api/notifications?limit=${limit}&offset=${offset}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -19,7 +19,7 @@ export async function fetchNotifications(Clerk, limit = 100, offset = 0) {
 export async function markAsRead(Clerk, notificationId) {
   try {
     const token = await Clerk.session.getToken();
-    const res = await fetch("http://localhost:3001/api/notifications/mark-read", {
+    const res = await fetch("https://reuniteai-production.up.railway.app/api/notifications/mark-read", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ notificationId }),
@@ -35,7 +35,7 @@ export async function markAsRead(Clerk, notificationId) {
 export async function markAllAsRead(Clerk) {
   try {
     const token = await Clerk.session.getToken();
-    const res = await fetch("http://localhost:3001/api/notifications/mark-all-read", {
+    const res = await fetch("https://reuniteai-production.up.railway.app/api/notifications/mark-all-read", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     });
