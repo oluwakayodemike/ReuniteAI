@@ -23,7 +23,7 @@ export const createClaim = async (claimData) => {
 
     const sql = `
       INSERT INTO claims (lost_item_id, found_item_id, claimant_email, pickup_code, status, created_at)
-      VALUES (?, ?, ?, ?, ?, NOW());
+      VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP());
     `;
 
     const params = [lost_item_id, found_item_id, claimant_email, pickup_code, status];
@@ -64,7 +64,7 @@ export const approveClaimTransaction = async ({ lost_item_id, found_item_id, cla
 
     const insertSql = `
       INSERT INTO claims (lost_item_id, found_item_id, claimant_email, pickup_code, status, created_at)
-      VALUES (?, ?, ?, ?, 'APPROVED', NOW());
+      VALUES (?, ?, ?, ?, 'APPROVED', UTC_TIMESTAMP());
     `;
     const insertParams = [lost_item_id, found_item_id, claimant_email, pickup_code];
     await connection.execute(insertSql, insertParams);

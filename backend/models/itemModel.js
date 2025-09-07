@@ -143,8 +143,8 @@ export const findSimilarLostItems = async (embedding, description, cleanUpDesc) 
 
 export const createNotification = async ({ user_id, message, lost_item_id, found_item_id }) => {
   const sql = `
-    INSERT INTO notifications (user_id, message, lost_item_id, found_item_id)
-    VALUES (?, ?, ?, ?);
+    INSERT INTO notifications (user_id, message, lost_item_id, found_item_id, created_at)
+    VALUES (?, ?, ?, ?, UTC_TIMESTAMP());
   `;
   await connection.execute(sql, [user_id, message, lost_item_id, found_item_id]);
   console.log(`notification created for user ${user_id} regarding lost ID ${lost_item_id}`);
@@ -156,20 +156,17 @@ export const batchCreateNotifications = async (notifications) => {
   }
 
   try {
+    const placeholders = notifications.map(() => '(?, ?, ?, ?, UTC_TIMESTAMP())').join(', ');
     const sql = `
       INSERT INTO notifications (user_id, message, lost_item_id, found_item_id, created_at)
-      VALUES ?;
+      VALUES ${placeholders};
     `;
 
-    const values = notifications.map(n => [
-      n.user_id,
-      n.message,
-      n.lost_item_id,
-      n.found_item_id,
-      new Date()
+    const flatValues = notifications.flatMap(n => [
+      n.user_id, n.message, n.lost_item_id, n.found_item_id
     ]);
 
-    await connection.execute(sql, [values]);
+    await connection.execute(sql, flatValues);
 
     console.log(`Successfully batch-inserted ${notifications.length} notifications.`);
   } catch (error) {
@@ -199,7 +196,11 @@ export const getUserNotifications = async (userId, limit = 20, offset = 0, isRea
 
   try {
     const notifications = await connection.execute(sql, params);
-    return notifications;
+
+    return notifications.map(n => ({
+      ...n,
+      created_at_iso: n.created_at ? new Date(n.created_at).toISOString() : null
+    }));
   } catch (error) {
     console.error("Error fetching notifications from DB:", error);
     throw error;

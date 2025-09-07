@@ -70,6 +70,7 @@ export const countUserStats = async (userId) => {
     throw error;
   }
 };
+
 export const getRecentActivity = async (userId, limit = 3) => {
   const sql = `
     SELECT 
@@ -95,20 +96,27 @@ export const getRecentActivity = async (userId, limit = 3) => {
     LIMIT ?;
   `;
   const activity = await connection.execute(sql, [userId, limit]);
-  return activity.map(item => ({
-    ...item,
-    time_ago: calculateTimeAgo(item.created_at)
-  }));
+
+  // normalize created_at to an ISO (UTC) string and compute time_ago from that
+  return activity.map(item => {
+    const createdIso = item.created_at ? new Date(item.created_at).toISOString() : null;
+    return {
+      ...item,
+      created_at_iso: createdIso,
+      time_ago: calculateTimeAgo(createdIso)
+    };
+  });
 };
 
-function calculateTimeAgo(date) {
-  const now = new Date();
-  const diff = now - new Date(date);
+function calculateTimeAgo(isoDate) {
+  if (!isoDate) return '';
+  const diff = Date.now() - new Date(isoDate).getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
   if (hours < 1) return 'Just now';
   if (hours < 24) return `${hours} hours ago`;
   return `${Math.floor(hours / 24)} days ago`;
 }
+
 
 export const getUserLostReports = async (userId) => {
   const sql = `
