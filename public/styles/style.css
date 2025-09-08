@@ -14,20 +14,6 @@ body {
   background-color: transparent !important;
 }
 
-/* 
-.navbar {
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 24px;
-  border-bottom: 1px solid #eee;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-} */
-
 .navbar {
   display: flex;
   align-items: center;
@@ -250,6 +236,53 @@ body {
   color: #0073e6;
 }
 
+.hamburger {
+  display: none;
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  margin-left: 8px;
+  cursor: pointer;
+}
+.hamburger .hamburger-box {
+  width: 28px;
+  height: 18px;
+  display: inline-block;
+  position: relative;
+}
+.hamburger .hamburger-inner,
+.hamburger .hamburger-inner::before,
+.hamburger .hamburger-inner::after {
+  width: 28px;
+  height: 2px;
+  background-color: #111;
+  border-radius: 2px;
+  position: absolute;
+  left: 0;
+  transition: transform 0.25s ease, top 0.2s ease, opacity 0.2s ease;
+}
+.hamburger .hamburger-inner {
+  top: 8px;
+}
+.hamburger .hamburger-inner::before {
+  content: "";
+  top: -8px;
+}
+.hamburger .hamburger-inner::after {
+  content: "";
+  top: 8px;
+}
+.hamburger.is-active .hamburger-inner {
+  transform: rotate(45deg);
+}
+.hamburger.is-active .hamburger-inner::before {
+  top: 0;
+  transform: rotate(90deg);
+}
+.hamburger.is-active .hamburger-inner::after {
+  opacity: 0;
+  top: 0;
+}
 
 .hero {
   background: linear-gradient(90deg, #fce3ec, #e3f6fc, #e0fbe3);
@@ -422,9 +455,146 @@ body {
   text-align: center;
   padding-top: 10px;
   font-size: 13px;
-  color: #777; 
+  color: #777;
 }
 
 .footer-bottom p {
   margin-top: 1%;
+}
+
+@media (max-width: 700px) {
+  .navbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    gap: 0;
+  }
+  .hamburger {
+    display: block;
+    order: 3;
+  }
+  .nav-left {
+    order: 1;
+    flex: none;
+  }
+  .nav-right {
+    order: 2;
+    gap: 12px;
+  }
+  .nav-center {
+    order: 4;
+  }
+
+  .nav-center {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(6, 24, 32, 0.12);
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    padding: 0 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.28s ease, padding 0.18s ease;
+    z-index: 999;
+  }
+  .nav-center.open {
+    max-height: 420px;
+    padding: 12px;
+  }
+  .nav-center a {
+    display: block;
+    padding: 12px 10px;
+    border-radius: 8px;
+    color: #111;
+    font-size: 15px;
+    text-decoration: none;
+    background: transparent;
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+  .nav-center a + a {
+    margin-top: 6px;
+  }
+  .nav-center a:hover {
+    background: #f4f7fb;
+    color: #0073e6;
+  }
+  .nav-center.open {
+    max-height: 400px;
+    padding-bottom: 12px;
+  }
+  .logo a {
+    font-size: 16px;
+  }
+  .nav-auth,
+  .nav-auth.outlined {
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  .notification-dropdown {
+    width: 95vw;
+    left: 50%;
+    top: 40px;
+    min-width: 0;
+    border-radius: 10px;
+  }
+  .hero {
+    padding: 40px 16px;
+  }
+  .hero-heading {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  .hero-description {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .quick-report {
+    padding: 24px 16px;
+    margin: 24px auto;
+    max-width: 98vw;
+    border-radius: 10px;
+  }
+  .qr-title {
+    font-size: 18px;
+  }
+  .qr-actions {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .qr-button {
+    min-width: 0;
+    width: 100%;
+    padding: 18px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .qr-button .icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .site-footer {
+    padding: 24px 16px 10px;
+    font-size: 13px;
+    margin-top: 30px;
+  }
+  .footer-content {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .footer-brand h3 {
+    font-size: 16px;
+  }
+  .footer-links,
+  .footer-social {
+    gap: 6px;
+  }
+  .footer-bottom {
+    font-size: 12px;
+    padding-top: 6px;
+  }
 }
