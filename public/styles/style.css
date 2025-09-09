@@ -495,7 +495,7 @@ body {
     box-shadow: 0 12px 40px rgba(6, 24, 32, 0.12);
     border-bottom-left-radius: 12px;
     border-bottom-right-radius: 12px;
-    padding: 0 12px;
+    padding: 0 8px;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.28s ease, padding 0.18s ease;
@@ -503,7 +503,7 @@ body {
   }
   .nav-center.open {
     max-height: 420px;
-    padding: 12px;
+    padding: 8px;
   }
   .nav-center a {
     display: block;
@@ -527,7 +527,7 @@ body {
     padding-bottom: 12px;
   }
   .logo a {
-    font-size: 16px;
+    font-size: 18px;
   }
   .nav-auth,
   .nav-auth.outlined {
@@ -545,7 +545,7 @@ body {
     padding: 40px 16px;
   }
   .hero-heading {
-    font-size: 24px;
+    font-size: 22px;
     margin-bottom: 12px;
   }
   .hero-description {
@@ -560,6 +560,9 @@ body {
   }
   .qr-title {
     font-size: 18px;
+  }
+  .qr-subtitle {
+    margin-bottom: 20px;
   }
   .qr-actions {
     flex-direction: column;
@@ -583,18 +586,18 @@ body {
   }
   .footer-content {
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     align-items: flex-start;
   }
   .footer-brand h3 {
-    font-size: 16px;
+    font-size: 18px;
   }
-  .footer-links,
+  /* .footer-links,
   .footer-social {
     gap: 6px;
-  }
+  } */
   .footer-bottom {
     font-size: 12px;
-    padding-top: 6px;
+    padding-top: 3%;
   }
 }
