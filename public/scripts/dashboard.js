@@ -101,11 +101,19 @@ async function initializeDashboard(Clerk) {
             <p class="item-description">${escapeHtml(report.description || "No description")}</p>
             <span class="status status-${escapeHtml(report.status_class || "unknown")}">${escapeHtml(report.display_status || "Unknown")}</span>
             <p class="item-date">${fmtDate(report.item_date)}</p>
-            <a href="/dashboard/report-details.html?id=${encodeURIComponent(report.id)}" class="item-action-btn"><i class="fa-solid fa-chevron-right"></i></a>
+            <a href="#" class="item-action-btn"
+              data-description="${escapeHtml(report.description || "")}"
+              data-id="${escapeHtml(report.id || "")}"
+              data-status="${escapeHtml(report.display_status || "")}"
+              data-status-class="${escapeHtml(report.status_class || "unknown")}"
+              data-image-url="${escapeHtml(report.image_url || "")}">
+              <i class="fa-solid fa-chevron-right"></i>
+            </a>
           `;
           reportList.appendChild(item);
         });
       }
+      setupItemActionButtons();
     }
 
     if (activityList) {
@@ -186,6 +194,49 @@ async function initializeDashboard(Clerk) {
   }
 }
 
+function setupItemActionButtons() {
+  const actionButtons = document.querySelectorAll(".item-action-btn");
+  const modal = document.getElementById("item-details-modal");
+  const closeModal = modal.querySelector(".close-btn");
+  const modalImage = document.getElementById("modal-item-image");
+
+  actionButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const itemData = btn.dataset;
+      document.getElementById("modal-item-id").textContent = itemData.id || "N/A";
+      document.getElementById("modal-item-description").textContent = itemData.description || "N/A";
+      const statusSpan = document.getElementById("modal-item-status");
+      statusSpan.textContent = itemData.status || "N/A";
+      statusSpan.className = `status status-${itemData.statusClass || "unknown"}`;
+
+      const imageUrl = itemData.imageUrl || "";
+      if (imageUrl.trim()) {
+        modalImage.src = imageUrl;
+        modalImage.style.display = "block";
+        modalImage.alt = itemData.description ? `Image of ${itemData.description}` : "Item image";
+      } else {
+        modalImage.style.display = "none";
+        modalImage.src = "";
+        modalImage.alt = "No image available";
+      }
+
+      modal.style.display = "flex";
+    });
+  });
+
+  closeModal.addEventListener("click", () => {
+    modal.style.display = "none";
+    modal.querySelector("#modal-item-image").src = "";
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.style.display = "none";
+      modal.querySelector("#modal-item-image").src = "";  
+    }
+  });
+}
 
 // util to avoid HTML injection for simple strings
 function escapeHtml(str) {

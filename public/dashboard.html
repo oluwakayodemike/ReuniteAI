@@ -106,5 +106,29 @@
         </aside>
       </div>
     </main>
+
+    <div id="item-details-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close-btn"><i class="fa-solid fa-xmark"></i></span>
+        <div class="modal-header">
+          <h2>Item Details</h2>
+        </div>
+        <div class="modal-body">
+          <img id="modal-item-image" class="modal-image" src="" alt="Item image" style="display: none;" />
+          <div class="detail-row">
+            <strong>ID:</strong>
+            <span id="modal-item-id"></span>
+          </div>
+          <div class="detail-row">
+            <strong>Description:</strong>
+            <span id="modal-item-description"></span>
+          </div>
+          <div class="detail-row">
+            <strong>Status:</strong>
+            <span id="modal-item-status" class="status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
