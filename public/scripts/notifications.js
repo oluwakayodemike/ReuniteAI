@@ -51,8 +51,8 @@ export function getNotificationClass(message) {
   const msg = (message || "").toLowerCase();
   if (msg.includes("match")) return { class: "matches", icon: "fa-solid fa-link" };
   if (msg.includes("filed") || msg.includes("reported")) return { class: "resolved", icon: "fa-solid fa-check" };
-  if (msg.includes("claim") || msg.includes("pending")) return { class: "pending", icon: "fa-solid fa-user-check" };
-  if (msg.includes("reunited") || msg.includes("approved")) return { class: "resolved", icon: "fa-solid fa-handshake" };
+  if (msg.includes("claim") || msg.includes("pending")) return { class: "claim", icon: "fa-solid fa-user-check" };
+  if (msg.includes("reunited") || msg.includes("approved")) return { class: "reunited", icon: "fa-solid fa-handshake" };
   return { class: "", icon: "fa-solid fa-bell" };
 }
 
@@ -81,6 +81,13 @@ export function initializeNotificationDropdown(Clerk) {
 
   let allNotifications = [];
 
+  function isNotificationActionable(notif) {
+    // only notifications about potential matches are actionable
+    const msg = (notif.message || '').toLowerCase();
+    const isMatch = /potential match has been found/.test(msg) || /match/.test(msg);
+    return isMatch && !!notif.lost_item_id;
+  }
+
   function renderDropdown() {
     list.innerHTML = '';
     let unreadCount = 0;
@@ -91,8 +98,12 @@ export function initializeNotificationDropdown(Clerk) {
       allNotifications.forEach(notif => {
         if (!notif.is_read) unreadCount++;
 
+        const actionable = isNotificationActionable(notif);
         const li = document.createElement('li');
-        li.className = `notification-item ${!notif.is_read ? 'unread' : ''}`;
+        li.className = `notification-item ${!notif.is_read ? 'unread' : ''} ${actionable ? 'actionable' : 'static'}`;
+        if (!actionable) {
+          li.setAttribute('aria-disabled', 'true');
+        }
         const { icon } = getNotificationClass(notif.message);
         const avatarIcon = `<i class="${icon}"></i>`;
 
@@ -102,21 +113,38 @@ export function initializeNotificationDropdown(Clerk) {
             <p class="notif-text">${escapeHtml(notif.message)}</p>
             <p class="notif-time">${formatNotificationDate(notif.created_at)}</p>
           </div>
-          ${!notif.is_read ? '<div class="unread-dot"></div>' : ''}
+          ${!notif.is_read ? '<div class="unread-dot" title="Mark as read"></div>' : ''}
         `;
 
-        li.addEventListener('click', async () => {
-          const url = notif.lost_item_id ? `./search-result.html?lostItemId=${notif.lost_item_id}` : '#';
-
-          if (!notif.is_read) {
-            const success = await markAsRead(Clerk, notif.id);
-            if (success) {
-              notif.is_read = true;
-              renderDropdown();
+        // only attach click handler if actionable
+        if (actionable) {
+          li.style.cursor = 'pointer';
+          li.addEventListener('click', async () => {
+            const url = `./search-result.html?lostItemId=${notif.lost_item_id}`;
+            if (!notif.is_read) {
+              const success = await markAsRead(Clerk, notif.id);
+              if (success) {
+                notif.is_read = true;
+                renderDropdown();
+              }
             }
+            window.location.href = url;
+          });
+        } else {
+          // mark non-actionable notifs as read by clicking unread dot only
+          const dot = li.querySelector('.unread-dot');
+          if (dot) {
+            dot.style.cursor = 'pointer';
+            dot.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              const success = await markAsRead(Clerk, notif.id);
+              if (success) {
+                notif.is_read = true;
+                renderDropdown();
+              }
+            });
           }
-          window.location.href = url;
-        });
+        }
 
         list.appendChild(li);
       });
@@ -148,5 +176,5 @@ export function initializeNotificationDropdown(Clerk) {
   });
 
   refreshNotificationsFromServer();
-  setInterval(refreshNotificationsFromServer, 60000);
+  setInterval(refreshNotificationsFromServer, 5000);
 }

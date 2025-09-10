@@ -82,7 +82,6 @@ async function initializeNotificationsPage(Clerk) {
           <p>${escapeHtml(notif.message)}</p>
           <span>${fmtDate(notif.created_at)}</span>
         </div>
-        <a href="${link}" class="item-action-btn"><i class="fa-solid fa-chevron-right"></i></a>
       `;
 
       // click handler now updates the local state, not the server
