@@ -188,25 +188,25 @@ export const startClaimProcess = async (req, res) => {
 export const verifyClaim = async (req, res) => {
   try {
     const { foundItemId, lostItemId, claimantAnswer } = req.body;
-    const claimant = await clerkClient.users.getUser(req.auth.userId);
+    if (!foundItemId || !lostItemId) {
+      return res.status(400).json({ message: 'foundItemId and lostItemId are required.' });
+    }
 
-    claimantEmail = claimant.emailAddresses?.[0]?.emailAddress || claimantEmail;
-
-    console.log(`ReasoningAgent: Verifying claim for Found ID: ${foundItemId}`);
+    let claimantEmail = 'claimant@reunite.ai';
+    try {
+      const claimant = await clerkClient.users.getUser(req.auth.userId);
+      claimantEmail = claimant?.emailAddresses?.[0]?.emailAddress || claimantEmail;
+    } catch (e) {
+      console.warn('could not fetch claimant user from Clerk:', e.message);
+    }
 
     const [foundItem, lostItem] = await Promise.all([
       getItemById(foundItemId),
-      getItemById(lostItemId),
-      clerkClient.users.getUser(req.auth.userId).catch(err => {
-        console.error("Failed to fetch claimant email from Clerk:", err);
-        return null;
-      })
+      getItemById(lostItemId)
     ]);
 
-    const claimantEmail = claimant?.emailAddresses?.[0]?.emailAddress || 'claimant@reunite.ai';
-
     if (!foundItem || !lostItem) {
-      return res.status(404).json({ message: "Required item reports not found." });
+      return res.status(404).json({ message: 'Required item reports not found.' });
     }
 
     const prompt = `
@@ -233,28 +233,58 @@ export const verifyClaim = async (req, res) => {
 
       Respond with only "yes" for AUTO_APPROVE or "no" for NEEDS_REVIEW.
     `;
+    
+    const apiKey = process.env.MOONSHOT_API_KEY || '';
+    if (!apiKey) {
+      console.error('MOONSHOT_API_KEY Missing');
+      return res.status(500).json({ message: 'moonshot api key not configured.' });
+    }
 
-    const apiKey = process.env.MOONSHOT_API_KEY || "";
-    const apiUrl = "https://api.moonshot.ai/v1/chat/completions";
-    
+    const apiUrl = 'https://api.moonshot.ai/v1/chat/completions';
+
     const payload = {
-      model: "kimi-thinking-preview",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 4096,
-      temperature: 0.8,
-      stream: true
+      model: 'kimi-thinking-preview',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 512,
+      temperature: 0.0,
+      // stream on true kept causing SSE parsing issues
+      stream: false
     };
-    
-    const kimiResponse = await axios.post(apiUrl, payload, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+
+    let decisionRaw = '';
+    try {
+      const kimiResponse = await axios.post(apiUrl, payload, {
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        timeout: 15000
+      });
+
+      if (kimiResponse.data?.choices && Array.isArray(kimiResponse.data.choices)) {
+        decisionRaw = kimiResponse.data.choices[0]?.message?.content || '';
+      } else {
+        console.warn('Unexpected response shape', kimiResponse.data);
       }
-    });
-    
-    const decision = kimiResponse.data.choices[0].message.content.trim().toLowerCase();
-    
-    console.log(`ReasoningAgent Decision: ${decision}`);
+    } catch (apiErr) {
+      const possible = typeof apiErr.response?.data === 'string' ? apiErr.response.data : '';
+      const match = possible.match(/"content"\s*:\s*"(yes|no)"/i);
+      if (match) {
+        decisionRaw = match[1];
+        console.log('fallback extracted decision:', decisionRaw);
+      } else {
+        console.error('AI request failed:', apiErr.message);
+        return res.status(502).json({ message: 'AI verification service error.' });
+      }
+    }
+
+    let decision = decisionRaw.trim().toLowerCase();
+    if (decision !== 'yes' && decision !== 'no') {
+      if (/\byes\b/i.test(decisionRaw) && !/\bno\b/i.test(decisionRaw)) decision = 'yes';
+      else if (/\bno\b/i.test(decisionRaw) && !/\byes\b/i.test(decisionRaw)) decision = 'no';
+      else {
+        console.warn('unclear decision, defaulting to manual review:', decisionRaw);
+        decision = 'no';
+      }
+    }
+    console.log('Final decision:', decision);
 
     if (decision === 'yes') {
       const pickupCode = `R-AI-${Math.floor(1000 + Math.random() * 9000)}`;
