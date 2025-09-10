@@ -45,28 +45,75 @@ const successMessage = document.getElementById('successMessage');
 
 let uploadedImageDataUrl = null;
 let cropper;
-let finalImage = null;
+let finalImageBlob = null;
+let finalImageName = "item-image.jpg";
 
-imageInput.addEventListener("change", () => {
+const convertToJpeg = (file) => {
+  return new Promise((resolve, reject) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return reject(new Error('Unsupported file type. Please upload a JPEG, PNG, or WEBP image.'));
+    }
+
+    if (file.type === 'image/jpeg') {
+      finalImageName = file.name;
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            finalImageName = file.name.replace(/\.[^/.]+$/, '.jpeg');
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to convert image to JPEG.'));
+          }
+        }, 'image/jpeg', 0.95);
+      };
+      img.onerror = () => reject(new Error('Failed to load image for conversion.'));
+      img.src = event.target.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.readAsDataURL(file);
+  });
+};
+
+imageInput.addEventListener("change", async (event) => {
   previewImage.innerHTML = "";
   previewImage.appendChild(cropIcon);
 
   const file = imageInput.files[0];
-  if (file && file.type.startsWith("image/")) {
-    finalImage = file;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      uploadedImageDataUrl = e.target.result;
-      const img = document.createElement("img");
-      img.src = uploadedImageDataUrl;
-      img.alt = "uploaded image preview";
-      previewImage.appendChild(img);
-      cropIcon.style.display = "block";
-    };
-    reader.readAsDataURL(file);
+  if (file) {
+    try {
+      finalImageBlob = await convertToJpeg(file);
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        uploadedImageDataUrl = e.target.result;
+        const img = document.createElement("img");
+        img.src = uploadedImageDataUrl;
+        img.alt = "uploaded image preview";
+        previewImage.appendChild(img);
+        cropIcon.style.display = "block";
+      };
+      reader.readAsDataURL(finalImageBlob);
+    } catch (error) {
+      console.error("Failed to process image:", error);
+      alert(error.message);
+      cropIcon.style.display = "none";
+      finalImageBlob = null;
+    }
   } else {
     cropIcon.style.display = "none";
-    finalImage = null;
+    finalImageBlob = null;
   }
 });
 
@@ -91,7 +138,9 @@ cropConfirm.addEventListener("click", () => {
   const canvas = cropper.getCroppedCanvas({ width: 224, height: 224 });
 
   canvas.toBlob((blob) => {
-    finalImage = blob;
+    finalImageBlob = blob;
+    finalImageName = 'cropped-image.jpeg';
+
     const croppedImg = document.createElement("img");
     croppedImg.src = URL.createObjectURL(blob);
 
@@ -119,11 +168,9 @@ function initializeForm() {
     }
 
     const status = reportForm.dataset.status;
-
     const formData = new FormData();
-    const imageName = imageInput.files[0]?.name || 'item-image.jpg';
 
-    formData.append('itemImage', finalImage, imageName);
+    formData.append('itemImage', finalImageBlob, finalImageName);
     formData.append('description', document.getElementById('item-description').value);
     formData.append('university', document.querySelector('input[name="university"]').value);
     formData.append('customLocation', document.querySelector('input[name="custom-location"]').value);

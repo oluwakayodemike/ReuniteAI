@@ -31,7 +31,7 @@ function initializeSearchResults() {
   async function fetchAndRenderMatches(id) {
     try {
       const token = await window.Clerk.session.getToken();
-      const response = await fetch(`https://reuniteai-production.up.railway.app/api/items/matches/${id}`, {
+      const response = await fetch(`http://localhost:3001/api/items/matches/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -92,7 +92,7 @@ function initializeSearchResults() {
     try {
       const token = await window.Clerk.session.getToken();
       const response = await fetch(
-        "https://reuniteai-production.up.railway.app/api/items/claim/start", {
+        "http://localhost:3001/api/items/claim/start", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -155,7 +155,7 @@ function initializeSearchResults() {
     try {
         const token = await window.Clerk.session.getToken();
         const response = await fetch(
-            "https://reuniteai-production.up.railway.app/api/items/claim/verify", {
+            "http://localhost:3001/api/items/claim/verify", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

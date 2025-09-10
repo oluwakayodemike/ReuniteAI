@@ -108,7 +108,7 @@ async function initializeNotificationsPage(Clerk) {
         <div class="activity-details">
           <p>${escapeHtml(activity.details)}</p>
           <span>${escapeHtml(activity.time_ago)}</span>
-        </div>`;
+        </div>`;  
       activityList.appendChild(li);
     });
   }
