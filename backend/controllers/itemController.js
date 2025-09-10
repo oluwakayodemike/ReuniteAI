@@ -234,14 +234,25 @@ export const verifyClaim = async (req, res) => {
       Respond with only "yes" for AUTO_APPROVE or "no" for NEEDS_REVIEW.
     `;
 
-    const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-    const apiKey = process.env.GEMINI_API_KEY || ""; 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    const apiKey = process.env.MOONSHOT_API_KEY || "";
+    const apiUrl = "https://api.moonshot.ai/v1/chat/completions";
     
-    console.log(payload);
+    const payload = {
+      model: "kimi-thinking-preview",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 4096,
+      temperature: 0.8,
+      stream: true
+    };
     
-    const geminiResponse = await axios.post(apiUrl, payload);
-    const decision = geminiResponse.data.candidates[0].content.parts[0].text.trim().toLowerCase();
+    const kimiResponse = await axios.post(apiUrl, payload, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const decision = kimiResponse.data.choices[0].message.content.trim().toLowerCase();
     
     console.log(`ReasoningAgent Decision: ${decision}`);
 
