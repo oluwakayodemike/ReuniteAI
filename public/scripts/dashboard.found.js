@@ -1,3 +1,5 @@
+import { setupItemActionButtons } from "./actionModal.js";
+
 window.addEventListener("load", async () => {
   const Clerk = window.Clerk;
   if (!Clerk) {
@@ -105,10 +107,21 @@ async function initializeFoundReports(Clerk) {
         <td>${fmtDate(dateField)}</td>
         <td>#${shortenId(report.report_id)}</td>
         <td><span class="status status-${statusClass}">${displayStatus}</span></td>
-        <td><a href="../report/${encodeURIComponent(report.report_id)}" class="action-btn-table">View Details</a></td>
+        <td>
+          <a href="#" 
+             class="action-btn-table view-details-btn" 
+             data-id="${escapeHtml(report.report_id)}" 
+             data-description="${escapeHtml(report.item_description)}" 
+             data-status="${displayStatus}" 
+             data-status-class="${statusClass}" 
+             data-image-url="${escapeHtml(report.image_url || '')}">
+            View Details
+          </a>
+        </td>
       `;
       tableBody.appendChild(row);
     });
+    setupItemActionButtons();
   }
 
   function renderActivity(list) {
