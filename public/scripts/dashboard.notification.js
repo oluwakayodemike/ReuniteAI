@@ -12,7 +12,6 @@ window.addEventListener("load", async () => {
       window.location.href = "../index.html";
       return;
     }
-    console.log("Notifications page loaded. Current user:", Clerk.user);
     initializeNotificationsPage(Clerk);
   } catch (err) {
     console.error("Clerk failed to load on notifications page:", err);
@@ -47,7 +46,6 @@ async function initializeNotificationsPage(Clerk) {
   async function fetchRecentActivity() {
     try {
       const token = await Clerk.session.getToken();
-      console.log(token);
 
       const res = await fetch("https://reuniteai-production.up.railway.app/api/dashboard", { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
       if (!res.ok) throw new Error("Failed to fetch dashboard data");

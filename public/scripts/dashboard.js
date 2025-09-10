@@ -14,8 +14,6 @@ window.addEventListener("load", async () => {
       window.location.href = "./index.html";
       return;
     }
-
-    console.log("Dashboard loaded. Current user:", Clerk.user);
     initializeDashboard(Clerk);
   } catch (err) {
     console.error("Clerk failed to load on dashboard page:", err);

@@ -7,7 +7,6 @@ window.addEventListener("load", async function () {
 
   try {
     await Clerk.load();
-    console.log("clerk is loaded and ready!");
 
     const userButtonDiv = document.getElementById("user-button");
     const signedInNav = document.getElementById("signed-in-nav");

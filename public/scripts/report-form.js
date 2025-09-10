@@ -3,8 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const Clerk = window.Clerk;
     try {
         await Clerk.load();
-        console.log("Clerk is loaded and ready on the report page.");
-
         initializeForm();
 
     } catch (err) {
@@ -166,7 +164,6 @@ function initializeForm() {
       }
 
       const result = await response.json();
-      console.log('API response:', result);
 
       if (status === 'lost') {
           sessionStorage.setItem('searchResults', JSON.stringify(result.matches));

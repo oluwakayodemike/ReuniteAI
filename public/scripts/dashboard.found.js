@@ -14,8 +14,6 @@ window.addEventListener("load", async () => {
       window.location.href = "../index.html";
       return;
     }
-
-    console.log("Found Reports loaded. Current user:", Clerk.user);
     initializeFoundReports(Clerk);
   } catch (err) {
     console.error("Clerk failed to load on found reports page:", err);
