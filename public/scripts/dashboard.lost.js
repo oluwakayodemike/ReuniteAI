@@ -64,7 +64,7 @@ async function initializeLostReports(Clerk) {
     } catch (err) {
       console.error("Error fetching lost reports:", err);
       return [];
-    }reuniteai-production.up.railway.app
+    }
   }
 
   async function fetchRecentActivity() {
