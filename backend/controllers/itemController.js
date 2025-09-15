@@ -251,6 +251,10 @@ export const verifyClaim = async (req, res) => {
 
     const geminiPayload = {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.0,
+        maxOutputTokens: 512,
+    },
     };
 
     let decisionRaw = '';
