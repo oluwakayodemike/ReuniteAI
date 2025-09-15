@@ -234,44 +234,95 @@ export const verifyClaim = async (req, res) => {
       Respond with only "yes" for AUTO_APPROVE or "no" for NEEDS_REVIEW.
     `;
     
-    const apiKey = process.env.MOONSHOT_API_KEY || '';
-    if (!apiKey) {
-      console.error('MOONSHOT_API_KEY Missing');
-      return res.status(500).json({ message: 'moonshot api key not configured.' });
+    const kimiApiKey = process.env.MOONSHOT_API_KEY || '';
+    const geminiApiKey = process.env.GEMINI_API_KEY || '';
+    if (!kimiApiKey || !geminiApiKey) {
+      console.error('API keys missing');
+      return res.status(500).json({ message: 'API keys not configured.' });
     }
 
-    const apiUrl = 'https://api.moonshot.ai/v1/chat/completions';
-
-    const payload = {
+    const kimiPayload = {
       model: 'kimi-thinking-preview',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 512,
       temperature: 0.0,
-      // stream on true kept causing SSE parsing issues
       stream: false
     };
 
+    const geminiPayload = {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    };
+
     let decisionRaw = '';
+    let usedProvider = 'kimi';
+
     try {
-      const kimiResponse = await axios.post(apiUrl, payload, {
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      // primary: try kimi first
+      const kimiResponse = await axios.post('https://api.moonshot.ai/v1/chat/completions', kimiPayload, {
+        headers: { Authorization: `Bearer ${kimiApiKey}`, 'Content-Type': 'application/json' },
         timeout: 15000
       });
 
       if (kimiResponse.data?.choices && Array.isArray(kimiResponse.data.choices)) {
         decisionRaw = kimiResponse.data.choices[0]?.message?.content || '';
       } else {
-        console.warn('Unexpected response shape', kimiResponse.data);
+        throw new Error('Unexpected Kimi response shape');
       }
-    } catch (apiErr) {
-      const possible = typeof apiErr.response?.data === 'string' ? apiErr.response.data : '';
-      const match = possible.match(/"content"\s*:\s*"(yes|no)"/i);
-      if (match) {
-        decisionRaw = match[1];
-        console.log('fallback extracted decision:', decisionRaw);
-      } else {
-        console.error('AI request failed:', apiErr.message);
-        return res.status(502).json({ message: 'AI verification service error.' });
+    } catch (kimiErr) {
+      console.warn(`Kimi failed: ${kimiErr.message}. Falling back to Gemini.`);
+      usedProvider = 'gemini';
+
+      try {
+        // fallback: try gemini instead
+        const geminiResponse = await axios.post(`https://generativelanguage.googleapis.com//v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`, geminiPayload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 15000
+        });
+
+        if (geminiResponse.data?.candidates && Array.isArray(geminiResponse.data.candidates)) {
+          decisionRaw = geminiResponse.data.candidates[0]?.content?.parts?.[0]?.text || '';
+        } else {
+          throw new Error('Unexpected Gemini response shape');
+        }
+      } catch (geminiErr) {
+        console.error(`gemini also failed: ${geminiErr.message}`);
+        console.warn("failing back to manual review since both AI providers failed.");
+
+        try {
+          const pending = await createClaim({
+            lost_item_id: lostItem.id,
+            found_item_id: foundItem.id,
+            claimant_email: claimantEmail,
+            pickup_code: null,
+            status: 'PENDING'
+          });
+          console.log(`claim recorded as PENDING due to AI failure (id=${pending?.id})`);
+
+          try {
+            const finderUserId = foundItem.user_id;
+            if (finderUserId) {
+              const msg = `A claim has been submitted for the item "${foundItem.description?.slice(0,120) || 'an item'}" but AI verification failed. It is awaiting manual review.`;
+              await createNotification({
+                user_id: finderUserId,
+                message: msg,
+                lost_item_id: lostItem.id,
+                found_item_id: foundItem.id
+              });
+              console.log(`pending notification sent to finder (user=${finderUserId})`);
+            }
+          } catch (notifErrII) {
+            console.error("Failed to create pending notification after AI failure:", notifErrII);
+          }
+
+          return res.status(200).json({
+            verified: false,
+            message: "AI verification unavailable, claim has been submitted for manual review.",
+            claimId: pending?.id || null
+          });
+        } catch (createErr) {
+          console.error("Failed to create pending claim after AI failure:", createErr);
+          return res.status(500).json({ message: "AI verification failed and claim could not be recorded." });
+        }
       }
     }
 
