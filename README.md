@@ -12,7 +12,7 @@ ReuniteAI solves this by combining:
 - **AI image matching** ([Hybrid search](https://docs.pingcap.com/tidbcloud/vector-search-hybrid-search/) using [TiDB](https://docs.pingcap.com) [vector search](https://docs.pingcap.com/tidbcloud/vector-search-overview/) and [full text search](https://docs.pingcap.com/tidbcloud/vector-search-full-text-search-sql/) capability on CLIP embeddings)  
 - **Strict claim verification** (fraud prevention via LLM reasoning using [kimi-thinking-preview](https://platform.moonshot.ai/docs/guide/use-kimi-thinking-preview-model) Model)
 - **User-friendly dashboard & notifications**  
-
+<img width="1056" height="648" alt="reunite" src="https://github.com/user-attachments/assets/eaf3a911-7ed4-4582-8613-33f899a5bf1e" />
 ---
 
 ## ✨ Features
