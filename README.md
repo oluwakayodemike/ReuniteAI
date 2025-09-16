@@ -13,7 +13,6 @@ ReuniteAI solves this by combining:
 - **Strict claim verification** (fraud prevention via LLM reasoning using [kimi-thinking-preview](https://platform.moonshot.ai/docs/guide/use-kimi-thinking-preview-model) Model)
 - **User-friendly dashboard & notifications**  
 <img width="1056" height="648" alt="reunite" src="https://github.com/user-attachments/assets/eaf3a911-7ed4-4582-8613-33f899a5bf1e" />
-
 ---
 
 ## ✨ Features
